@@ -1,0 +1,84 @@
+version: 2
+
+before:
+  hooks:
+    - sh -c "npm ci --prefix dashboard && npm run build --prefix dashboard"
+
+builds:
+  - id: boundarylab
+    main: ./cmd/boundarylab
+    binary: boundarylab
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+    flags:
+      - -trimpath
+
+  - id: boundarylab-hook
+    main: ./cmd/boundarylab-hook
+    binary: boundarylab-hook
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+    flags:
+      - -trimpath
+
+  - id: boundarylab-daemon
+    main: ./cmd/boundarylab-daemon
+    binary: boundarylab-daemon
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+    flags:
+      - -trimpath
+
+archives:
+  - id: default
+    builds:
+      - boundarylab
+      - boundarylab-hook
+      - boundarylab-daemon
+    format: tar.gz
+    name_template: "boundarylab_{{ .Os }}_{{ .Arch }}"
+    files:
+      - src: policies/**
+        dst: policies
+        strip_parent: true
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+release:
+  header: |
+    ## Install from source
+
+    From a local checkout, run `make build` and consult the README for setup.
