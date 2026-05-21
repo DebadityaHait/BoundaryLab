@@ -1,0 +1,18 @@
+[Unit]
+Description=BoundaryLab Governance Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/boundarylab-daemon -policy-dir /etc/boundarylab/policies -audit-db /var/lib/boundarylab/audit.db
+Restart=on-failure
+RestartSec=5
+User=boundarylab
+Group=boundarylab
+Environment=BOUNDARYLAB_SOCKET_PATH=/tmp/boundarylab.sock
+StandardOutput=journal
+StandardError=journal
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
