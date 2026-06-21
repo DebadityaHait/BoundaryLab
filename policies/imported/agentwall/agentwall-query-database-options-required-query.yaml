@@ -1,0 +1,18 @@
+# imported from: agentwall
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: agentwall-query-database-options-required-query
+    annotations:
+
+        boundarylab.io/severity: high
+spec:
+    description: 'AgentWall required field: query_database.options.query'
+    matchConstraints:
+        tools:
+            - query_database
+    validations:
+        - expression: tool == "query_database" && request.args.query == ""
+          message: Required field query is missing
+          action: DENY
+    defaultAction: ALLOW

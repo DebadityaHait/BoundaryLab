@@ -1,0 +1,85 @@
+# Layer 1 (CEL) self-protection policy — defense-in-depth complement to the
+# hardcoded SelfProtectGuard (Layer 2) in internal/policy/selfprotect.go.
+#
+# This policy is evaluated by the CEL engine as a normal policy. Even if the
+# hardcoded guard is somehow bypassed (e.g., future refactor removes it), this
+# CEL policy provides independent coverage.
+#
+# The hardcoded guard is Layer 2 — it runs BEFORE CEL and cannot be disabled
+# by editing YAML. This YAML is Layer 1 — it enforces the same rules via CEL
+# and is additionally useful for audit logging and policy transparency.
+#
+# Behavior:
+#   Write("~/.boundarylab/policies/...")     → DENY
+#   Write("~/.claude/settings.json")   → DENY
+#   Shell("kill $(pgrep boundarylab)")       → DENY
+#   Shell("rm -rf ~/.boundarylab/")          → DENY
+#   Shell("launchctl bootout ...")     → DENY
+#   Shell("boundarylab daemon stop")         → DENY
+#   Shell("ls -la ~/.boundarylab/")          → ALLOW
+#   Write("/tmp/foo.txt")              → ALLOW
+
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+  name: boundarylab-self-protection
+  annotations:
+    boundarylab.io/default-enabled: "true"
+    boundarylab.io/bundle: builtin
+    boundarylab.io/layer: "self-protection"
+spec:
+  description: "Prevent AI agents from modifying BoundaryLab governance configuration"
+  matchConstraints:
+    tools: ["Write", "Edit", "StrReplace", "MultiEdit", "Delete", "Shell", "Bash", "Terminal"]
+  variables:
+    - name: isWriteToBoundaryLabPath
+      expression: >-
+        (has(args.path) && (
+          args.path.matches("(?i)(\\.boundarylab/|\\.boundarylab$)") ||
+          args.path.matches("(?i)\\.claude/settings\\.json$")
+        ))
+    - name: isWriteToBoundaryLabFilePath
+      expression: >-
+        (has(args.file_path) && (
+          args.file_path.matches("(?i)(\\.boundarylab/|\\.boundarylab$)") ||
+          args.file_path.matches("(?i)\\.claude/settings\\.json$")
+        ))
+    - name: isWriteToBoundaryLabTarget
+      expression: >-
+        (has(args.target_file) && (
+          args.target_file.matches("(?i)(\\.boundarylab/|\\.boundarylab$)") ||
+          args.target_file.matches("(?i)\\.claude/settings\\.json$")
+        ))
+    - name: isShellKillBoundaryLab
+      expression: >-
+        has(args.command) && args.command.matches("(?i)(kill|pkill|killall).*boundarylab")
+    - name: isShellLaunchctlBoundaryLab
+      expression: >-
+        has(args.command) && args.command.matches("(?i)launchctl.*(bootout|remove|unload).*boundarylab")
+    - name: isShellSystemctlBoundaryLab
+      expression: >-
+        has(args.command) && args.command.matches("(?i)systemctl.*(stop|disable|mask).*boundarylab")
+    - name: isShellRmBoundaryLab
+      expression: >-
+        has(args.command) && args.command.matches("(?i)(rm|mv|chmod|chown).*[/.]boundarylab")
+    - name: isShellCliBoundaryLab
+      expression: >-
+        has(args.command) && args.command.matches("(?i)boundarylab.*(daemon|setup).*(stop|restart|uninstall|remove)")
+    - name: isShellRedirectBoundaryLab
+      expression: >-
+        has(args.command) && args.command.matches("(?i)(echo|cat|tee|sed|awk).*>.*[/.]boundarylab")
+    - name: isShellCrontabBoundaryLab
+      expression: >-
+        has(args.command) && args.command.matches("(?i)crontab.*boundarylab")
+    - name: isShellTargetingBoundaryLab
+      expression: >-
+        isShellKillBoundaryLab || isShellLaunchctlBoundaryLab || isShellSystemctlBoundaryLab ||
+        isShellRmBoundaryLab || isShellCliBoundaryLab || isShellRedirectBoundaryLab || isShellCrontabBoundaryLab
+  validations:
+    - expression: 'isWriteToBoundaryLabPath || isWriteToBoundaryLabFilePath || isWriteToBoundaryLabTarget'
+      message: "BoundaryLab self-protection: agents cannot modify governance files. Edit ~/.boundarylab/policies/custom/ directly in your terminal."
+      action: DENY
+    - expression: 'isShellTargetingBoundaryLab'
+      message: "BoundaryLab self-protection: agents cannot manage the BoundaryLab daemon. Run boundarylab commands in your own terminal."
+      action: DENY
+  defaultAction: ALLOW

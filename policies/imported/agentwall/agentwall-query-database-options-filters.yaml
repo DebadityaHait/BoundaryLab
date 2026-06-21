@@ -1,0 +1,20 @@
+# IMPORT_REVIEW: LLM-translated from agentwall — verify semantics (attempts: 1)
+# imported from: agentwall
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: agentwall-query-database-options-filters
+    annotations:
+
+        boundarylab.io/severity: high
+        boundarylab.io/llm-confidence: medium
+spec:
+    description: 'AgentWall constraint: query_database.options.filters'
+    matchConstraints:
+        tools:
+            - query_database
+    validations:
+        - expression: tool == "query_database" && "filters" in request.args
+          message: 'IMPORT_REVIEW: original constraint was object schema validation — verify intent (deny filters entirely vs validate filter structure)'
+          action: DENY
+    defaultAction: ALLOW
