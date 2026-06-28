@@ -1,0 +1,20 @@
+# auto-generated from pkg/adapters/catalog.json
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: catalog-auto-fdisk
+    annotations:
+        boundarylab.io/family: bash
+        boundarylab.io/risk-level: critical
+        boundarylab.io/severity: critical
+        boundarylab.io/source: pkg/adapters/catalog.json
+spec:
+    description: Deny critically-risky fdisk (bash)
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: tool == "Bash" && request.args.command.startsWith("fdisk")
+          message: fdisk is blocked — this operation is not appropriate for an AI agent
+          action: DENY
+    defaultAction: ALLOW
