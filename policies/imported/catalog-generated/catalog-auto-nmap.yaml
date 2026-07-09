@@ -1,0 +1,20 @@
+# auto-generated from pkg/adapters/catalog.json
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: catalog-auto-nmap
+    annotations:
+        boundarylab.io/family: bash
+        boundarylab.io/risk-level: high
+        boundarylab.io/severity: high
+        boundarylab.io/source: pkg/adapters/catalog.json
+spec:
+    description: 'Require approval for nmap (bash risk level: high)'
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: tool == "Bash" && request.args.command.startsWith("nmap")
+          message: nmap is classified as high risk — approval required
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

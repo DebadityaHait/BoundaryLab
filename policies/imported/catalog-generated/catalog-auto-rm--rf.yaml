@@ -1,0 +1,20 @@
+# auto-generated from pkg/adapters/catalog.json
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: catalog-auto-rm--rf
+    annotations:
+        boundarylab.io/family: bash
+        boundarylab.io/risk-level: critical
+        boundarylab.io/severity: critical
+        boundarylab.io/source: pkg/adapters/catalog.json
+spec:
+    description: Deny critically-risky rm -rf (bash)
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: tool == "Bash" && request.args.command.startsWith("rm -rf")
+          message: rm -rf requires approval — confirm this is the intended operation
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

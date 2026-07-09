@@ -1,0 +1,20 @@
+# auto-generated from pkg/adapters/catalog.json
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: catalog-auto-kubectl-delete-node
+    annotations:
+        boundarylab.io/family: bash
+        boundarylab.io/risk-level: critical
+        boundarylab.io/severity: critical
+        boundarylab.io/source: pkg/adapters/catalog.json
+spec:
+    description: Deny critically-risky kubectl delete node (bash)
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: tool == "Bash" && request.args.command.startsWith("kubectl delete node")
+          message: kubectl delete node requires approval — confirm this is the intended operation
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW
