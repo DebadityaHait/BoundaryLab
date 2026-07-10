@@ -1,0 +1,18 @@
+# imported from: claude-guardrails
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: settings-deny-013
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/source-rule: Read ~/.netrc
+spec:
+    description: 'Deny rule imported from settings.json: Read ~/.netrc'
+    matchConstraints:
+        tools: [Read]
+    validations:
+        - expression: tool == "Read" && request.args.path.matches(".*/\\.netrc$")
+          message: 'Blocked by imported settings.json rule: Read ~/.netrc'
+          action: DENY
+    defaultAction: ALLOW

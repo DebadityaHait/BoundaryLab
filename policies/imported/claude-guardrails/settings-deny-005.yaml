@@ -1,0 +1,18 @@
+# imported from: claude-guardrails
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: settings-deny-005
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/source-rule: Read ~/.azure/**
+spec:
+    description: 'Deny rule imported from settings.json: Read ~/.azure/**'
+    matchConstraints:
+        tools: [Read]
+    validations:
+        - expression: tool == "Read" && request.args.path.matches(".*/\\.azure/.*")
+          message: 'Blocked by imported settings.json rule: Read ~/.azure/**'
+          action: DENY
+    defaultAction: ALLOW
