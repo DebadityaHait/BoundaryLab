@@ -1,0 +1,18 @@
+# imported from: claude-guardrails
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: settings-deny-032
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/source-rule: Edit ~/.profile
+spec:
+    description: 'Deny rule imported from settings.json: Edit ~/.profile'
+    matchConstraints:
+        tools: [Edit, Write]
+    validations:
+        - expression: (tool == "Edit" || tool == "Write") && request.args.path.matches(".*/\\.profile$")
+          message: 'Blocked by imported settings.json rule: Edit ~/.profile'
+          action: DENY
+    defaultAction: ALLOW

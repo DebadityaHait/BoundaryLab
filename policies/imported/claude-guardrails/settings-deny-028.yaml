@@ -1,0 +1,18 @@
+# imported from: claude-guardrails
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: settings-deny-028
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/source-rule: Edit ~/.bashrc
+spec:
+    description: 'Deny rule imported from settings.json: Edit ~/.bashrc'
+    matchConstraints:
+        tools: [Edit, Write]
+    validations:
+        - expression: (tool == "Edit" || tool == "Write") && request.args.path.matches(".*/\\.bashrc$")
+          message: 'Blocked by imported settings.json rule: Edit ~/.bashrc'
+          action: DENY
+    defaultAction: ALLOW

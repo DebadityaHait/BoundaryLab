@@ -1,0 +1,18 @@
+# imported from: claude-guardrails
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: settings-deny-029
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/source-rule: Edit ~/.zshrc
+spec:
+    description: 'Deny rule imported from settings.json: Edit ~/.zshrc'
+    matchConstraints:
+        tools: [Edit, Write]
+    validations:
+        - expression: (tool == "Edit" || tool == "Write") && request.args.path.matches(".*/\\.zshrc$")
+          message: 'Blocked by imported settings.json rule: Edit ~/.zshrc'
+          action: DENY
+    defaultAction: ALLOW

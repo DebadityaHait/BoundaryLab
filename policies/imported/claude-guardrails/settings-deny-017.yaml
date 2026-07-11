@@ -1,0 +1,18 @@
+# imported from: claude-guardrails
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: settings-deny-017
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/source-rule: Edit **/.env.*
+spec:
+    description: 'Deny rule imported from settings.json: Edit **/.env.*'
+    matchConstraints:
+        tools: [Edit, Write]
+    validations:
+        - expression: (tool == "Edit" || tool == "Write") && request.args.path.matches(".*\\.env\\..*")
+          message: 'Blocked by imported settings.json rule: Edit **/.env.*'
+          action: DENY
+    defaultAction: ALLOW

@@ -1,0 +1,18 @@
+# imported from: claude-guardrails
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: settings-deny-019
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/source-rule: Bash(mkfs *)
+spec:
+    description: 'Deny rule imported from settings.json: Bash(mkfs *)'
+    matchConstraints:
+        tools: [Bash]
+    validations:
+        - expression: tool == "Bash" && request.args.command.matches("mkfs .*")
+          message: 'Blocked by imported settings.json rule: Bash(mkfs *)'
+          action: DENY
+    defaultAction: ALLOW
