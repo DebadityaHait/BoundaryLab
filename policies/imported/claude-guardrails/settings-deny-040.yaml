@@ -1,0 +1,18 @@
+# imported from: claude-guardrails
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: settings-deny-040
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/source-rule: Bash(rm -rf *)
+spec:
+    description: 'Deny rule imported from settings.json: Bash(rm -rf *)'
+    matchConstraints:
+        tools: [Bash]
+    validations:
+        - expression: tool == "Bash" && request.args.command.matches("rm -rf .*")
+          message: 'Blocked by imported settings.json rule: Bash(rm -rf *)'
+          action: DENY
+    defaultAction: ALLOW

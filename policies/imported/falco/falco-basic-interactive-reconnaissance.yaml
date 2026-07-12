@@ -1,0 +1,22 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-basic-interactive-reconnaissance
+    annotations:
+        boundarylab.io/falco-tags: maturity_sandbox,host,container,process,mitre_reconnaissance,TA0043
+
+        boundarylab.io/severity: low
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Basic Interactive Reconnaissance
+spec:
+    description: |
+        This rule detects basic interactive reconnaissance commands that are typically run by unsophisticated attackers or used in internal Red Team exercises. Interactive is defined as a terminal being present (proc.tty != 0). This could be any form of reverse shell or usage of kubectl exec or ssh etc. In addition, filtering for the process being the process group leader indicates that the command was "directly" typed into the terminal and not run as a result of a script. This rule is a basic auditing or template rule. You can expand the list of reconnaissance commands, such as by adding "ls". Common anti-patterns are SRE activity or debugging, but it is still worth capturing this generically. Typically, you would expect other rules to fire as well in relation to this activity.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && (request.args.command.contains("whoami") || request.args.command.contains("id ") || request.args.command.contains("hostname") || request.args.command.contains("uname") || request.args.command.contains("ifconfig") || request.args.command.contains("netstat") || request.args.command.contains("ps aux"))'
+          message: 'Falco rule violated: Basic Interactive Reconnaissance'
+          action: AUDIT
+    defaultAction: ALLOW

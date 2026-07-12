@@ -1,0 +1,18 @@
+# imported from: claude-guardrails
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: settings-deny-037
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/source-rule: Bash(sudo *)
+spec:
+    description: 'Deny rule imported from settings.json: Bash(sudo *)'
+    matchConstraints:
+        tools: [Bash]
+    validations:
+        - expression: tool == "Bash" && request.args.command.matches("sudo .*")
+          message: 'Blocked by imported settings.json rule: Bash(sudo *)'
+          action: DENY
+    defaultAction: ALLOW

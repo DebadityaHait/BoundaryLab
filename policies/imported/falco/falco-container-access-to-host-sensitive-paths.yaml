@@ -1,0 +1,24 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-container-access-to-host-sensitive-paths
+    annotations:
+        boundarylab.io/falco-tags: maturity_sandbox,container,filesystem,mitre_privilege_escalation,T1611
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Container Access to Host Sensitive Paths
+spec:
+    description: |
+        Detects container processes accessing paths that typically only exist when the host filesystem is mounted into the container (like /host, /rootfs, /hostfs). This may indicate a container escape attempt or a misconfigured volume mount that exposes the host filesystem. Legitimate monitoring or backup containers may access these paths, so tune accordingly using the user_known_host_path_access macro.
+    matchConstraints:
+        tools:
+            - Read
+            - Write
+            - Edit
+    validations:
+        - expression: '((tool == "Read" || tool == "Write" || tool == "Edit") && (request.args.path.startsWith("/host/") || request.args.path.startsWith("/rootfs/") || request.args.path.startsWith("/hostfs/"))) || (tool == "Bash" && request.args.command.matches(".*((/host|/rootfs|/hostfs)/(etc|proc|sys|var|root)/|/proc/1/root/).*"))'
+          message: 'Falco rule violated: Container Access to Host Sensitive Paths'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

@@ -1,0 +1,22 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-contact-ec2-instance-metadata-service-from-container
+    annotations:
+        boundarylab.io/falco-tags: maturity_incubating,network,aws,container,mitre_credential_access,T1552.005
+
+        boundarylab.io/severity: low
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Contact EC2 Instance Metadata Service From Container
+spec:
+    description: |
+        Detects attempts to communicate with the EC2 Instance Metadata Service from a container. This detection is narrowly focused and might not apply to your environment. In addition, it could generate noise and require fine-tuning.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && request.args.command.contains("169.254.169.254")'
+          message: 'Falco rule violated: Contact EC2 Instance Metadata Service From Container'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

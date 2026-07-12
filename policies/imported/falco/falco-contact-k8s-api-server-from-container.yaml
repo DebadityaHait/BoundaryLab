@@ -1,0 +1,22 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-contact-k8s-api-server-from-container
+    annotations:
+        boundarylab.io/falco-tags: maturity_stable,container,network,k8s,mitre_discovery,T1565
+
+        boundarylab.io/severity: low
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Contact K8S API Server From Container
+spec:
+    description: |
+        Detect attempts to communicate with the K8S API Server from a container by non-profiled users. Kubernetes APIs play a pivotal role in configuring the cluster management lifecycle. Detecting potential unauthorized access to the API server is of utmost importance. Audit your complete infrastructure and pinpoint any potential machines from which the API server might be accessible based on your network layout. If Falco can't operate on all these machines, consider analyzing the Kubernetes audit logs (typically drained from control nodes, and Falco offers a k8saudit plugin) as an additional data source for detections within the control plane.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && (request.args.command.contains("kubernetes.default") || request.args.command.matches(".*curl.*:(6443|8443).*") || request.args.command.contains("KUBERNETES_SERVICE_HOST"))'
+          message: 'Falco rule violated: Contact K8S API Server From Container'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

@@ -1,0 +1,22 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-debugfs-launched-in-privileged-container
+    annotations:
+        boundarylab.io/falco-tags: maturity_stable,container,cis,process,mitre_privilege_escalation,T1611
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Debugfs Launched in Privileged Container
+spec:
+    description: |
+        Detect file system debugger debugfs launched inside a privileged container which might lead to container escape. This rule has a more narrow scope.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && request.args.command.contains("debugfs")'
+          message: 'Falco rule violated: Debugfs Launched in Privileged Container'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

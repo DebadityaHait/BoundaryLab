@@ -1,0 +1,22 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-contact-cloud-metadata-service-from-container
+    annotations:
+        boundarylab.io/falco-tags: maturity_incubating,network,container,mitre_discovery,T1565
+
+        boundarylab.io/severity: low
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Contact cloud metadata service from container
+spec:
+    description: |
+        Detects attempts to communicate with the Cloud Instance Metadata Service from a container. This detection is narrowly focused and might not apply to your environment. In addition, it could generate noise and require fine-tuning.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && (request.args.command.contains("169.254.169.254") || request.args.command.contains("metadata.google.internal"))'
+          message: 'Falco rule violated: Contact cloud metadata service from container'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

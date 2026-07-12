@@ -1,0 +1,22 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-create-symlink-over-sensitive-files
+    annotations:
+        boundarylab.io/falco-tags: maturity_stable,host,container,filesystem,mitre_credential_access,T1555
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Create Symlink Over Sensitive Files
+spec:
+    description: |
+        Detect symlinks created over a curated list of sensitive files or subdirectories under /etc/ or root directories. Can be customized as needed. Refer to further and equivalent guidance within the rule "Read sensitive file untrusted".
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && request.args.command.matches(".*\\bln\\s+-s.*(shadow|sudoers|pam\\.conf|passwd|pwquality\\.conf|gshadow).*")'
+          message: 'Falco rule violated: Create Symlink Over Sensitive Files'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

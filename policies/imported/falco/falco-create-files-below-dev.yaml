@@ -1,0 +1,23 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-create-files-below-dev
+    annotations:
+        boundarylab.io/falco-tags: maturity_incubating,host,filesystem,mitre_persistence,T1543
+
+        boundarylab.io/severity: high
+        boundarylab.io/source-rule: Create files below dev
+spec:
+    description: |
+        Detect the creation of files under /dev except for authorized device management programs. This can reveal rootkits hiding files in /dev. Additionally, consider the "Execution from /dev/shm" rule. The upstream rule already covers some tuning scenarios that you can further expand upon.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+            - Bash
+    validations:
+        - expression: '((tool == "Write" || tool == "Edit") && request.args.path.matches("^/dev/[^/]+$") && !request.args.path.matches("^/dev/(null|zero|random|urandom|stdin|stdout|stderr|tty|pts.*|fd.*)$")) || (tool == "Bash" && request.args.command.matches(".*\\b(mknod|install)\\b.*/dev/[a-zA-Z].*") && !request.args.command.matches(".*/dev/(null|zero|random|urandom|stdin|stdout|stderr|tty)\\b.*"))'
+          message: 'Falco rule violated: Create files below dev'
+          action: DENY
+    defaultAction: ALLOW

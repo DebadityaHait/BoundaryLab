@@ -1,0 +1,24 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-clear-log-activities
+    annotations:
+        boundarylab.io/falco-tags: maturity_stable,host,container,filesystem,mitre_defense_evasion,T1070,NIST_800-53_AU-10
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Clear Log Activities
+spec:
+    description: |
+        Detect clearing of critical access log files, typically done to erase evidence that could be attributed to an adversary's actions. To effectively customize and operationalize this detection, check for potentially missing log file destinations relevant to your environment, and adjust the profiled containers you wish not to be alerted on.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && (request.args.command.matches(".*\\btruncate\\b.*-s\\s*0.*/var/log/.*") || request.args.command.matches(".*\\bshred\\b.*/var/log/.*") || request.args.command.matches(".*\\brm\\b.*-[rf]+\\s+/var/log/.*")) || ((tool == "Write" || tool == "Edit") && request.args.path.startsWith("/var/log/") && request.args.content == "")'
+          message: 'Falco rule violated: Clear Log Activities'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW
