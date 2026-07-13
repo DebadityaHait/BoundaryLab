@@ -1,0 +1,24 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-detect-release-agent-file-container-escapes
+    annotations:
+        boundarylab.io/falco-tags: maturity_stable,container,process,mitre_privilege_escalation,T1611
+
+        boundarylab.io/severity: critical
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Detect release_agent File Container Escapes
+spec:
+    description: |
+        Detect an attempt to exploit a container escape using release_agent file. By running a container with certains capabilities, a privileged user can modify release_agent file and escape from the container.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+            - Bash
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.endsWith("release_agent") || tool == "Bash" && request.args.command.contains("release_agent")'
+          message: 'Falco rule violated: Detect release_agent File Container Escapes'
+          action: DENY
+    defaultAction: ALLOW

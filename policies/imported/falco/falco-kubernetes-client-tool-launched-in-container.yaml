@@ -1,0 +1,21 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-kubernetes-client-tool-launched-in-container
+    annotations:
+        boundarylab.io/falco-tags: maturity_sandbox,container,mitre_execution,T1610
+
+        boundarylab.io/severity: medium
+        boundarylab.io/source-rule: Kubernetes Client Tool Launched in Container
+spec:
+    description: |
+        Detect the execution of a Kubernetes client tool (like docker, kubectl, crictl) within a container, which is typically not expected behavior. Although this rule targets container workloads, monitoring the use of tools like crictl on the host over interactive access could also be valuable for broader auditing objectives.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && (request.args.command.matches(".*\\b(docker|kubectl)\\s+exec.*(-it|-i|-t).*") || request.args.command.matches(".*\\b(crictl|nerdctl)\\s+exec.*"))'
+          message: 'Falco rule violated: Kubernetes Client Tool Launched in Container'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

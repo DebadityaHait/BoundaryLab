@@ -1,0 +1,22 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-launch-privileged-container
+    annotations:
+        boundarylab.io/falco-tags: maturity_incubating,container,cis,mitre_execution,T1610,PCI_DSS_10.2.5
+
+        boundarylab.io/severity: low
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Launch Privileged Container
+spec:
+    description: |
+        Detect the initial process initiation within a privileged container, with exemptions for known and trusted images. This rule primarily serves as an excellent auditing mechanism since highly privileged containers, when compromised, can result in significant harm. For instance, if another rule triggers within such a privileged container, it could be seen as more suspicious, prompting a closer inspection.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && request.args.command.matches(".*(docker\\s+run|kubectl\\s+run).*--privileged.*")'
+          message: 'Falco rule violated: Launch Privileged Container'
+          action: AUDIT
+    defaultAction: ALLOW

@@ -1,0 +1,22 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-launch-remote-file-copy-tools-in-container
+    annotations:
+        boundarylab.io/falco-tags: maturity_incubating,container,network,process,mitre_exfiltration,T1020
+
+        boundarylab.io/severity: low
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Launch Remote File Copy Tools in Container
+spec:
+    description: |
+        Detect remote file copy tools (like rsync, scp, sftp, dcp) launched within a container, potentially indicating data exfiltration. Suggest refining this rule to accommodate legitimate use cases.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && request.args.command.matches(".*\\b(scp|rsync|sftp|rcp)\\s+.*")'
+          message: 'Falco rule violated: Launch Remote File Copy Tools in Container'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

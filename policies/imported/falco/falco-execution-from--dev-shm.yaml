@@ -1,0 +1,22 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-execution-from--dev-shm
+    annotations:
+        boundarylab.io/falco-tags: maturity_stable,host,container,mitre_execution,T1059.004
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Execution from /dev/shm
+spec:
+    description: |
+        This rule detects file execution in the /dev/shm directory, a tactic often used by threat actors to store their readable, writable, and occasionally executable files. /dev/shm acts as a link to the host or other containers, creating vulnerabilities for their compromise as well. Notably, /dev/shm remains unchanged even after a container restart. Consider this rule alongside the newer "Drop and execute new binary in container" rule.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && (request.args.command.matches(".*chmod.*\\+x.*(/dev/shm/|/run/shm/).*") || request.args.command.matches(".*[;&|]\\s*(/dev/shm/|/run/shm/)[a-zA-Z0-9_.-]+.*") || request.args.command.matches(".*(bash|sh)\\s+-c\\s+.*(/dev/shm/|/run/shm/).*"))'
+          message: 'Falco rule violated: Execution from /dev/shm'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

@@ -1,0 +1,22 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-launch-ingress-remote-file-copy-tools-in-container
+    annotations:
+        boundarylab.io/falco-tags: maturity_incubating,container,network,process,mitre_command_and_control,TA0011
+
+        boundarylab.io/severity: low
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Launch Ingress Remote File Copy Tools in Container
+spec:
+    description: |
+        Detect ingress remote file copy tools (such as curl or wget) launched inside containers. This rule can be considered a valuable auditing tool, but it has the potential to generate notable noise and requires careful profiling before full operationalization.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && (request.args.command.matches(".*(curl|wget).*-[oO]\\s+.*") || (request.args.command.matches(".*(curl|wget)\\s+https?://.*") && !request.args.command.matches(".*(localhost|127\\.0\\.0\\.1|::1).*")))'
+          message: 'Falco rule violated: Launch Ingress Remote File Copy Tools in Container'
+          action: AUDIT
+    defaultAction: ALLOW

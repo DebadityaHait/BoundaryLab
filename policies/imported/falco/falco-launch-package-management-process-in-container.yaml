@@ -1,0 +1,22 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-launch-package-management-process-in-container
+    annotations:
+        boundarylab.io/falco-tags: maturity_incubating,container,process,software_mgmt,mitre_persistence,T1505
+
+        boundarylab.io/severity: high
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Launch Package Management Process in Container
+spec:
+    description: |
+        Detect package management processes executed within containers. An excellent auditing rule to monitor general drifts in containers. Particularly useful for newer rules like "Drop and execute new binary in container" during incident response investigations. This helps identify common anti-patterns of ad-hoc debugging. Simultaneously, to maintain optimal hygiene, it's recommended to prevent container drifts and instead opt for redeploying new containers.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && request.args.command.matches(".*\\b(apt-get|apt|yum|dnf|pip|pip3|npm|gem)\\s+(install|update|upgrade)\\b.*")'
+          message: 'Falco rule violated: Launch Package Management Process in Container'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

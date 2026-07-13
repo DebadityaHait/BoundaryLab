@@ -1,0 +1,21 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-delete-or-rename-shell-history
+    annotations:
+        boundarylab.io/falco-tags: maturity_incubating,host,container,process,filesystem,mitre_defense_evasion,T1070
+
+        boundarylab.io/severity: medium
+        boundarylab.io/source-rule: Delete or rename shell history
+spec:
+    description: |
+        Detect shell history deletion, frequently used by unsophisticated adversaries to eliminate evidence. Note that it can also trigger when exiting a Terminal shell, such as with `kubectl exec`, which may introduce some noise.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && (request.args.command.matches(".*rm\\s+.*\\.(bash_history|zsh_history|sh_history).*") || request.args.command.matches(".*history\\s+-[cw].*") || request.args.command.contains("HISTFILE=/dev/null") || request.args.command.matches(".*ln\\s+.*\\.bash_history.*"))'
+          message: 'Falco rule violated: Delete or rename shell history'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

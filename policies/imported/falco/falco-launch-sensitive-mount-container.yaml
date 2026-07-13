@@ -1,0 +1,22 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-launch-sensitive-mount-container
+    annotations:
+        boundarylab.io/falco-tags: maturity_sandbox,container,cis,mitre_execution,T1610
+
+        boundarylab.io/severity: low
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Launch Sensitive Mount Container
+spec:
+    description: |
+        Detect the initial process launched within a container that has a mount from a sensitive host directory (e.g. /proc). Exceptions are made for known trusted images. This rule holds value for generic auditing; however, its noisiness varies based on your environment.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && (request.args.command.matches(".*docker\\s+run.*-v\\s+/(etc|proc|sys)[:/].*") || request.args.command.matches(".*docker\\s+run.*-v\\s+/var/run/docker\\.sock[:/].*") || request.args.command.matches(".*docker\\s+run.*-v\\s+/dev/(mem|kmem|port|sda|nvme)[:/].*"))'
+          message: 'Falco rule violated: Launch Sensitive Mount Container'
+          action: AUDIT
+    defaultAction: ALLOW
