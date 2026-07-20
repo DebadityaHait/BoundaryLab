@@ -1,0 +1,22 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-read-sensitive-file-untrusted
+    annotations:
+        boundarylab.io/falco-tags: maturity_stable,host,container,filesystem,mitre_credential_access,T1555
+
+        boundarylab.io/severity: medium
+        boundarylab.io/source-rule: Read sensitive file untrusted
+spec:
+    description: |
+        An attempt to read any sensitive file (e.g. files containing user/password/authentication information). Exceptions are made for known trusted programs. Can be customized as needed. In modern containerized cloud infrastructures, accessing traditional Linux sensitive files might be less relevant, yet it remains valuable for baseline detections. While we provide additional rules for SSH or cloud vendor-specific credentials, you can significantly enhance your security program by crafting custom rules for critical application credentials unique to your environment.
+    matchConstraints:
+        tools:
+            - Read
+            - Bash
+    validations:
+        - expression: '(tool == "Read" && (request.args.path.matches(".*/etc/(shadow|gshadow|sudoers|passwd|group)") || request.args.path.matches(".*/etc/ssh/ssh_host_[a-z]+_key"))) || (tool == "Bash" && request.args.command.matches(".*\\bcat\\b.*/etc/(shadow|gshadow|sudoers|passwd).*"))'
+          message: 'Falco rule violated: Read sensitive file untrusted'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

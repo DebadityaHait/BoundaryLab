@@ -1,0 +1,22 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-mount-launched-in-privileged-container
+    annotations:
+        boundarylab.io/falco-tags: maturity_incubating,container,cis,filesystem,mitre_privilege_escalation,T1611
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Mount Launched in Privileged Container
+spec:
+    description: |
+        Detect filesystem mounts (using the mount binary) within a privileged container. Due to the elevated privileges, this action could be one of the TTPs used in an attempt to escape from a container to the host. This type of action is often preceded by reconnaissance activities, for which you can also create custom rules.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && request.args.command.matches(".*\\bmount\\s+(/|--bind|--rbind|-o|-t).*") && !request.args.command.contains("--help")'
+          message: 'Falco rule violated: Mount Launched in Privileged Container'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

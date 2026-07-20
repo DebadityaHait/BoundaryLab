@@ -1,0 +1,22 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-program-run-with-disallowed-http-proxy-env
+    annotations:
+        boundarylab.io/falco-tags: maturity_incubating,host,container,users,mitre_execution,T1204
+
+        boundarylab.io/severity: low
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Program run with disallowed http proxy env
+spec:
+    description: |
+        Detect curl or wget usage with HTTP_PROXY environment variable. Attackers can manipulate the HTTP_PROXY variable's value to redirect application's internal HTTP requests. This could expose sensitive information like authentication keys and private data.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && (request.args.command.contains("HTTP_PROXY=") || request.args.command.contains("HTTPS_PROXY=") || request.args.command.contains("http_proxy=") || request.args.command.contains("https_proxy="))'
+          message: 'Falco rule violated: Program run with disallowed http proxy env'
+          action: AUDIT
+    defaultAction: ALLOW

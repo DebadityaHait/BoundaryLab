@@ -1,0 +1,22 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-linux-kernel-module-injection-detected
+    annotations:
+        boundarylab.io/falco-tags: maturity_stable,host,container,process,mitre_persistence,TA0003
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Linux Kernel Module Injection Detected
+spec:
+    description: |
+        Inject Linux Kernel Modules from containers using insmod or modprobe with init_module and finit_module syscalls, given the precondition of sys_module effective capabilities. Profile the environment and consider allowed_container_images_loading_kernel_module to reduce noise and account for legitimate cases.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && (request.args.command.matches(".*\\binsmod\\b.*") || request.args.command.matches(".*\\bmodprobe\\b.*") || request.args.command.matches(".*\\brmmod\\b.*"))'
+          message: 'Falco rule violated: Linux Kernel Module Injection Detected'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

@@ -1,0 +1,22 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-ptrace-attached-to-process
+    annotations:
+        boundarylab.io/falco-tags: maturity_stable,host,container,process,mitre_privilege_escalation,T1055.008
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: PTRACE attached to process
+spec:
+    description: |
+        Detect an attempt to inject potentially malicious code into a process using PTRACE in order to evade process-based defenses or elevate privileges. Common anti-patterns are debuggers. Additionally, profiling your environment via the known_ptrace_procs template macro can reduce noise. A successful ptrace syscall generates multiple logs at once.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && (request.args.command.matches(".*\\bstrace\\b.*") || request.args.command.matches(".*\\bgdb\\b.*-p\\s*[0-9]+.*"))'
+          message: 'Falco rule violated: PTRACE attached to process'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

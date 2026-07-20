@@ -1,0 +1,22 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-ptrace-anti-debug-attempt
+    annotations:
+        boundarylab.io/falco-tags: maturity_stable,host,container,process,mitre_defense_evasion,T1622
+
+        boundarylab.io/severity: low
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: PTRACE anti-debug attempt
+spec:
+    description: |
+        Detect usage of the PTRACE system call with the PTRACE_TRACEME argument, indicating a program actively attempting to avoid debuggers attaching to the process. This behavior is typically indicative of malware activity. Read more about PTRACE in the "PTRACE attached to process" rule.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && (request.args.command.contains("ptrace") || request.args.command.contains("PTRACE_TRACEME"))'
+          message: 'Falco rule violated: PTRACE anti-debug attempt'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

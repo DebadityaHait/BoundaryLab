@@ -1,0 +1,24 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-privileged-container-device-access
+    annotations:
+        boundarylab.io/falco-tags: maturity_sandbox,container,filesystem,mitre_privilege_escalation,T1611
+
+        boundarylab.io/severity: critical
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Privileged Container Device Access
+spec:
+    description: |
+        Detects container processes accessing raw block devices, which could be used to escape container isolation by directly reading or writing to host storage. This technique allows attackers to access the host filesystem, modify system files, or extract sensitive data even without traditional container escape. Requires the container to have privileged access or specific device permissions. Override user_known_privileged_device_access for legitimate storage operations.
+    matchConstraints:
+        tools:
+            - Read
+            - Write
+            - Bash
+    validations:
+        - expression: '((tool == "Read" || tool == "Write") && (request.args.path.startsWith("/dev/sd") || request.args.path.startsWith("/dev/nvme") || request.args.path.startsWith("/dev/vd") || request.args.path.startsWith("/dev/xvd"))) || (tool == "Bash" && request.args.command.matches(".*\\b(dd|cat|hexdump)\\b.*/dev/(sd[a-z]|nvme[0-9]|vd[a-z]|xvd[a-z]).*"))'
+          message: 'Falco rule violated: Privileged Container Device Access'
+          action: DENY
+    defaultAction: ALLOW

@@ -1,0 +1,22 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-network-connection-outside-local-subnet
+    annotations:
+        boundarylab.io/falco-tags: maturity_incubating,container,network,mitre_discovery,T1046,PCI_DSS_6.4.2
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Network Connection outside Local Subnet
+spec:
+    description: |
+        Detect network traffic (inbound or outbound) from a container to a destination outside the local subnet. To operationalize this rule, profile your environment and update the template macro namespace_scope_network_only_subnet. Customizing network-related rules usually demands substantial engineering effort to ensure their functionality.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && request.args.command.matches(".*\\b(nc|netcat|ncat|telnet)\\b.*[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}.*") && !request.args.command.matches(".*(localhost|127\\.0\\.0\\.1|192\\.168\\.|10\\.|172\\.(1[6-9]|2[0-9]|3[01])\\.).*")'
+          message: 'Falco rule violated: Network Connection outside Local Subnet'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW
