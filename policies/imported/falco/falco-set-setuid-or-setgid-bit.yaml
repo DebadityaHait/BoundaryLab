@@ -1,0 +1,21 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-set-setuid-or-setgid-bit
+    annotations:
+        boundarylab.io/falco-tags: maturity_incubating,host,container,process,users,mitre_privilege_escalation,T1548.001
+
+        boundarylab.io/severity: low
+        boundarylab.io/source-rule: Set Setuid or Setgid bit
+spec:
+    description: |
+        This rule is focused on detecting the use of setuid or setgid bits set via chmod. These bits, when set for an application, result in the application running with the privileges of the owning user or group. By enabling the setuid or setgid bits, an attacker could run code in a different user's context, possibly with elevated privileges. However, there's a trade-off with noise, given that numerous applications legitimately run chmod. This rule is related to the "Non sudo setuid" rule.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && (request.args.command.matches(".*\\bchmod\\b.*(u\\+s|g\\+s|[24][0-9]{3}|[6][0-9]{3}).*") || request.args.command.matches(".*\\bchmod\\b.*[^a-z]\\+s.*"))'
+          message: 'Falco rule violated: Set Setuid or Setgid bit'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

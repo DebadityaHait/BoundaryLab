@@ -1,0 +1,24 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-schedule-cron-jobs
+    annotations:
+        boundarylab.io/falco-tags: maturity_incubating,host,container,filesystem,mitre_execution,T1053.003
+
+        boundarylab.io/severity: low
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Schedule Cron Jobs
+spec:
+    description: |
+        Detect scheduled cron jobs; this is a highly generic detection and certainly needs adjustments and profiling in your environment before operationalization. Simultaneously, exploiting the functionality of cron jobs is among one of the oldest TTPs used by adversaries.
+    matchConstraints:
+        tools:
+            - Bash
+            - Write
+            - Edit
+    validations:
+        - expression: 'tool == "Bash" && (request.args.command.matches(".*\\bcrontab\\b\\s+(-e|-r|[^-]\\S*).*") || request.args.command.matches(".*>\\s*/etc/cron\\.(d|daily|hourly|weekly|monthly)/.*")) || (tool == "Write" || tool == "Edit") && request.args.path.matches(".*/etc/cron(tab|\\.(d|daily|hourly|weekly|monthly)/).*")'
+          message: 'Falco rule violated: Schedule Cron Jobs'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

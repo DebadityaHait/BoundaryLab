@@ -1,0 +1,22 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-unexpected-udp-traffic
+    annotations:
+        boundarylab.io/falco-tags: maturity_incubating,host,container,network,mitre_exfiltration,TA0011
+
+        boundarylab.io/severity: low
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Unexpected UDP Traffic
+spec:
+    description: |
+        Detecting UDP traffic on ports other than 53 (DNS) or other commonly used ports. Misusing UDP is a known TTP among attackers. Monitoring unusual network activity is highly valuable but often generates significant noise, as is the case with this detection.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && (request.args.command.matches(".*\\bnc\\b.*-u.*") || request.args.command.matches(".*socat.*UDP.*") || request.args.command.matches(".*\\bnmap\\b.*-sU.*"))'
+          message: 'Falco rule violated: Unexpected UDP Traffic'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

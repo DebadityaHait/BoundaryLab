@@ -1,0 +1,24 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-update-package-repository
+    annotations:
+        boundarylab.io/falco-tags: maturity_sandbox,host,container,filesystem,mitre_execution,T1072
+
+        boundarylab.io/severity: low
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Update Package Repository
+spec:
+    description: |
+        This rule generically detects updates to package repositories and can be seen as an auditing measure. Recommend evaluating its relevance for your specific environment.
+    matchConstraints:
+        tools:
+            - Bash
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && (request.args.path.startsWith("/etc/apt/") || request.args.path.startsWith("/etc/yum.repos.d/")) || tool == "Bash" && request.args.command.matches(".*>\\s*/etc/(apt|yum|dnf).*")'
+          message: 'Falco rule violated: Update Package Repository'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

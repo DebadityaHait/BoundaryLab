@@ -1,0 +1,21 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-system-procs-network-activity
+    annotations:
+        boundarylab.io/falco-tags: maturity_incubating,host,network,process,mitre_execution,T1059
+
+        boundarylab.io/severity: low
+        boundarylab.io/source-rule: System procs network activity
+spec:
+    description: |
+        Detect any unexpected network activity performed by system binaries that typically shouldn't perform network activity, including coreutils binaries (like sleep, mkdir, who, date, and others) or user management binaries (such as login, systemd, usermod, deluser, adduser, chpasswd, and others). This serves as a valuable baseline detection for network-related activities.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && request.args.command.matches(".*kubectl\\s+exec.*(-it|-i|-t).*") && request.args.command.matches(".*\\b(bash|sh|ash|zsh|cmd|powershell)\\b.*")'
+          message: 'Falco rule violated: System procs network activity'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

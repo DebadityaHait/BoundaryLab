@@ -1,0 +1,22 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-sudo-potential-privilege-escalation
+    annotations:
+        boundarylab.io/falco-tags: maturity_sandbox,host,container,filesystem,users,mitre_privilege_escalation,T1548.003
+
+        boundarylab.io/severity: critical
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Sudo Potential Privilege Escalation
+spec:
+    description: |
+        Affecting sudo (<= 1.9.5p2), there's a privilege escalation vulnerability. By executing sudo using the sudoedit -s or sudoedit -i command with a command-line argument that ends with a single backslash character, an unprivileged user can potentially escalate privileges to root. This rule is highly specific and might be bypassed due to potential issues with string matching on command line arguments.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && request.args.command.matches(".*\\bsudo(edit)?\\b.*(--shell|-s\\b|-i\\b).*")'
+          message: 'Falco rule violated: Sudo Potential Privilege Escalation'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

@@ -1,0 +1,24 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-write-below-root
+    annotations:
+        boundarylab.io/falco-tags: maturity_sandbox,host,container,filesystem,mitre_persistence,TA0003
+
+        boundarylab.io/severity: high
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Write below root
+spec:
+    description: |
+        Trying to write to any file directly below / or /root can serve as an auditing rule to track general system changes. Such rules can be noisy and challenging to interpret, particularly if your system frequently undergoes updates. However, careful profiling of your environment can transform this rule into an effective rule for detecting unusual behavior associated with system changes, including compliance-related cases. Lastly, this rule stands out as potentially the noisiest one among rules related to "write below.
+    matchConstraints:
+        tools:
+            - Read
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches("^/[^/]+$") || tool == "Bash" && request.args.command.matches(".*>\\s*/[a-zA-Z0-9_.-]+$")'
+          message: 'Falco rule violated: Write below root'
+          action: DENY
+    defaultAction: ALLOW

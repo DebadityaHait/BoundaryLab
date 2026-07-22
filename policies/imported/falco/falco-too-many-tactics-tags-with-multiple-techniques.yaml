@@ -1,0 +1,20 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-too-many-tactics-tags-with-multiple-techniques
+    annotations:
+        boundarylab.io/falco-tags: host,container,filesystem,mitre_discovery,mitre_exfiltration,mitre_credential_access,mitre_execution,T1555,T1212,T1020,T1552,T1083
+
+        boundarylab.io/severity: medium
+        boundarylab.io/source-rule: too many tactics tags with multiple techniques
+spec:
+    description: |
+        Directory traversal monitored file read - Web applications can be vulnerable to directory traversal attacks that allow accessing files outside of the web app's root directory (e.g. Arbitrary File Read bugs). System directories like /etc are typically accessed via absolute paths. Access patterns outside of this (here path traversal) can be regarded as suspicious. This rule includes failed file open attempts.
+    matchConstraints:
+        tools: []
+    validations:
+        - expression: 'false'
+          message: 'Falco rule violated: too many tactics tags with multiple techniques'
+          action: AUDIT
+    defaultAction: ALLOW

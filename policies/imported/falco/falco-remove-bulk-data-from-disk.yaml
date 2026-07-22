@@ -1,0 +1,22 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-remove-bulk-data-from-disk
+    annotations:
+        boundarylab.io/falco-tags: maturity_stable,host,container,process,filesystem,mitre_impact,T1485
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source-rule: Remove Bulk Data from Disk
+spec:
+    description: |
+        Detect a process running to clear bulk data from disk with the intention to destroy data, possibly interrupting availability to systems. Profile your environment and use user_known_remove_data_activities to tune this rule.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && (request.args.command.matches(".*\\bshred\\b\\s+.*") || request.args.command.matches(".*\\bwipe\\b\\s+-[a-zA-Z].*") || request.args.command.matches(".*\\bdd\\b.*if=/dev/(zero|urandom).*of=.*") || request.args.command.matches(".*\\brm\\b.*-rf\\s+/\\s*$"))'
+          message: 'Falco rule violated: Remove Bulk Data from Disk'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

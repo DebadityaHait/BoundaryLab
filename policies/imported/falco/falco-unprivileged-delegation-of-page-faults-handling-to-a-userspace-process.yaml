@@ -1,0 +1,21 @@
+# imported from: rules
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: falco-unprivileged-delegation-of-page-faults-handling-to-a-userspace-process
+    annotations:
+        boundarylab.io/falco-tags: maturity_sandbox,host,container,process,mitre_defense_evasion,TA0005
+
+        boundarylab.io/severity: critical
+        boundarylab.io/source-rule: Unprivileged Delegation of Page Faults Handling to a Userspace Process
+spec:
+    description: |
+        Detect a successful unprivileged userfaultfd syscall, which could serve as an attack primitive for exploiting other vulnerabilities. To fine-tune this rule, consider using the template list "user_known_userfaultfd_processes".
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && request.args.command.contains("userfaultfd")'
+          message: 'Falco rule violated: Unprivileged Delegation of Page Faults Handling to a Userspace Process'
+          action: DENY
+    defaultAction: ALLOW
