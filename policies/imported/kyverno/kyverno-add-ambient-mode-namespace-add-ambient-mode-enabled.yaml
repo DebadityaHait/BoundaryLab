@@ -1,0 +1,19 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-add-ambient-mode-namespace-add-ambient-mode-enabled
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: Istio
+spec:
+    description: In order for Istio to include namespaces in ambient mode, the label `istio.io/dataplane-mode`  must be set to `ambient`. As an alternative to rejecting Namespace definitions which don't already  contain this label, it can be added automatically. This policy adds the label `istio.io/dataplane-mode` set to `ambient` for all new Namespaces.
+    matchConstraints:
+        tools: []
+    validations:
+        - expression: 'false'
+          message: 'Mutate rule (Istio ambient mode namespace label) — BoundaryLab cannot mutate requests; verify namespace has istio.io/dataplane-mode=ambient label if ambient mode is required'
+          action: AUDIT
+    defaultAction: ALLOW

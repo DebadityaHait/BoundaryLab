@@ -1,0 +1,21 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-add-castai-removal-disabled-do-not-evict-jobs
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: CAST AI
+spec:
+    description: 'CAST AI will not downscale a node that includes a pod with the  autoscaling.cast.ai/removal-disabled="true" label on it, this protects sensitive workloads from being evicted and can be attributed to any pod to protect against unwanted downscaling. This policy will mutate jobs and  cronjobs to add the removal-disabled label to protect against eviction. '
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Job") && !request.args.content.contains("kind: CronJob") && !request.args.content.contains("removal-disabled")'
+          message: 'Job manifest is missing autoscaling.cast.ai/removal-disabled label on pod template — pods may be evicted by CAST AI node downscaling'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW
