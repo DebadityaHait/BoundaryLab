@@ -1,0 +1,19 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-add-runtimeclassname-add-prodclass
+    annotations:
+
+        boundarylab.io/severity: low
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: PSP Migration
+spec:
+    description: In the earlier Pod Security Policy controller, it was possible to configure a policy to add a Pod's runtimeClassName. This was beneficial in that various container runtimes could be specified according to a policy. This Kyverno policies mutates Pods to add a runtimeClassName of `prodclass`.
+    matchConstraints:
+        tools: []
+    validations:
+        - expression: 'false'
+          message: 'Mutate rule (runtimeClassName injection) — BoundaryLab cannot mutate requests; verify pods in production contexts set runtimeClassName to prodclass for PSP migration compliance'
+          action: AUDIT
+    defaultAction: ALLOW

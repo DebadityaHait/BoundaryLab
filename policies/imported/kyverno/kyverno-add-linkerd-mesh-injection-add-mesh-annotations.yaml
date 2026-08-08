@@ -1,0 +1,19 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-add-linkerd-mesh-injection-add-mesh-annotations
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: Linkerd
+spec:
+    description: Sidecar proxy injection in Linkerd may be handled at the Namespace level by setting the annotation `linkerd.io/inject` to `enabled`. In addition, a second annotation may be applied which controls the Pod startup behavior. This policy sets the annotations, if not present, `linkerd.io/inject` and `config.linkerd.io/proxy-await` to `enabled` on all new Namespaces.
+    matchConstraints:
+        tools: []
+    validations:
+        - expression: 'false'
+          message: 'Mutate rule (Linkerd sidecar injection annotation) — BoundaryLab cannot mutate requests; verify namespaces have linkerd.io/inject=enabled and config.linkerd.io/proxy-await=enabled annotations'
+          action: AUDIT
+    defaultAction: ALLOW

@@ -1,0 +1,19 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-add-ns-quota-generate-resourcequota
+    annotations:
+
+        boundarylab.io/severity: low
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: Multi-Tenancy, EKS Best Practices
+spec:
+    description: To better control the number of resources that can be created in a given Namespace and provide default resource consumption limits for Pods, ResourceQuota and LimitRange resources are recommended. This policy will generate ResourceQuota and LimitRange resources when a new Namespace is created.
+    matchConstraints:
+        tools: []
+    validations:
+        - expression: 'false'
+          message: 'Generate rule (ResourceQuota on namespace creation) — BoundaryLab cannot generate resources; verify new namespaces have a ResourceQuota resource controlling resource consumption'
+          action: AUDIT
+    defaultAction: ALLOW

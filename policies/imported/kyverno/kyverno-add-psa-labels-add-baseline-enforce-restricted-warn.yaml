@@ -1,0 +1,19 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-add-psa-labels-add-baseline-enforce-restricted-warn
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: Pod Security Admission, EKS Best Practices
+spec:
+    description: Pod Security Admission (PSA) can be controlled via the assignment of labels at the Namespace level which define the Pod Security Standard (PSS) profile in use and the action to take. If not using a cluster-wide configuration via an AdmissionConfiguration file, Namespaces must be explicitly labeled. This policy assigns the labels `pod-security.kubernetes.io/enforce=baseline` and `pod-security.kubernetes.io/warn=restricted` to all new Namespaces if those labels are not included.
+    matchConstraints:
+        tools: []
+    validations:
+        - expression: 'false'
+          message: 'Mutate rule (PSA labels on namespace) — BoundaryLab cannot mutate requests; verify new namespaces have pod-security.kubernetes.io/enforce=baseline and pod-security.kubernetes.io/warn=restricted labels'
+          action: AUDIT
+    defaultAction: ALLOW
