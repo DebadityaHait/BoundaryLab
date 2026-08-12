@@ -1,0 +1,21 @@
+# imported from: policies
+# Gap: per-namespace ConfigMap allowlist — CEL cannot resolve runtime ConfigMap data; approximates by permitting system-prefixed classes (system-cluster-critical, system-node-critical) and requiring approval for all others
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-allowed-podpriorities-validate-pod-priority-pod
+    annotations:
+
+        boundarylab.io/severity: low
+        kyverno.io/category: Sample
+spec:
+    description: A Pod PriorityClass is used to provide a guarantee on the scheduling of a Pod relative to others. In certain cases where not all users in a cluster are trusted, a malicious user could create Pods at the highest possible priorities, causing other Pods to be evicted/not get scheduled. This policy checks the defined `priorityClassName` in a Pod spec to a dictionary of allowable PriorityClasses for the given Namespace stored in a ConfigMap. If the `priorityClassName` is not among them, the Pod is blocked.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("priorityClassName:") && !request.args.content.matches(".*priorityClassName:\\s+system-.*")'
+          message: 'The Pod priorityClassName is not in the approved list. Only system-prefixed PriorityClasses (e.g., system-cluster-critical, system-node-critical) are automatically allowed. Custom PriorityClasses require approval.'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

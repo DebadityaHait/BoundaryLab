@@ -1,0 +1,21 @@
+# imported from: policies
+# Gap: update-detection — CEL cannot distinguish a create from an update; flags all writes to ArgoCD Application manifests that reference a project field for human review
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-application-prevent-updates-project-project-updates-application
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Argo
+spec:
+    description: This policy prevents updates to the project field after an Application is created.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Application") && request.args.content.contains("project:")'
+          message: The spec.project field of an ArgoCD Application cannot be changed after creation. Verify this is an intentional project reassignment.
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

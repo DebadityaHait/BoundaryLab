@@ -1,0 +1,21 @@
+# imported from: policies
+# Gap: per-key allowlist — CEL cannot enumerate individual annotation keys; approximates by detecting namespaced annotation keys (containing /) that do not belong to known-safe prefixes (fluxcd.io/, helm.sh/, kubectl.kubernetes.io/, app.kubernetes.io/)
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-allowed-annotations-allowed-fluxcd-annotations-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Other in CEL
+spec:
+    description: Rather than creating a deny list of annotations, it may be more useful to invert that list and create an allow list which then denies any others. This policy demonstrates how to allow two annotations with a specific key name of fluxcd.io/ while denying others that do not meet the pattern.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("annotations:") && request.args.content.matches("(?s).*annotations:[^:]*[a-z0-9.-]+/[a-z].*") && !request.args.content.contains("fluxcd.io/") && !request.args.content.contains("helm.sh/") && !request.args.content.contains("kubectl.kubernetes.io/") && !request.args.content.contains("app.kubernetes.io/")'
+          message: 'Pod annotations contain keys from unrecognized namespaces. Only the following annotation prefixes are allowed: fluxcd.io/, helm.sh/, kubectl.kubernetes.io/, app.kubernetes.io/. Remove or rename annotations with other prefixes.'
+          action: AUDIT
+    defaultAction: ALLOW
