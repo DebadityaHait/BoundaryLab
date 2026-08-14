@@ -1,0 +1,21 @@
+# AUDIT_ONLY: CEL cannot parse or compare duration strings in YAML content — cannot enforce the 2400h (100 day) limit. Flags all Certificate duration fields for manual review.
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-cert-manager-limit-duration-certificate-duration-max-100days-certificate
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Cert-Manager
+spec:
+    description: Kubernetes managed non-letsencrypt certificates have to be renewed in every 100 days.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Certificate") && request.args.content.contains("duration:")'
+          message: 'AUDIT: Certificate duration field detected — verify duration is less than 2400h (100 days). Non-letsencrypt certificates must be renewed within 100 days.'
+          action: AUDIT
+    defaultAction: ALLOW

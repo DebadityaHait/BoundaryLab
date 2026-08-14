@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-block-tekton-task-runs-check-taskrun-user-taskrun
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Tekton
+spec:
+    description: Restrict creation of TaskRun resources to the Tekton pipelines controller.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: TaskRun")'
+          message: Creating a TaskRun is not allowed.
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

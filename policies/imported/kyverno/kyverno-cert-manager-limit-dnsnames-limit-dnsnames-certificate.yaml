@@ -1,0 +1,21 @@
+# CEL_LIMITATION: cannot count YAML list items — cannot enforce "at most 1 dnsNames entry".
+# Expression set to false (pass-through) to avoid firing on every valid cert with dnsNames.
+# Requires structural YAML parsing at engine level to enforce count limit.
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-cert-manager-limit-dnsnames-limit-dnsnames-certificate
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Cert-Manager
+spec:
+    description: Some applications will not accept certificates containing more than a single name. This policy ensures that each certificate request contains only one DNS name entry.
+    matchConstraints:
+        tools: []
+    validations:
+        - expression: 'false'
+          message: 'CEL cannot count dnsNames list entries — policy not enforceable. Only one dnsNames entry is allowed per certificate request.'
+          action: AUDIT
+    defaultAction: ALLOW

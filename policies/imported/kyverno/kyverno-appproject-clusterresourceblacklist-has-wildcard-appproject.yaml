@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-appproject-clusterresourceblacklist-has-wildcard-appproject
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Argo
+spec:
+    description: An AppProject may optionally specify clusterResourceBlacklist which is a blacklisted group of cluster resources. This is often a good practice to ensure AppProjects do not allow more access than needed. This policy is a combination of two rules which enforce that all AppProjects specify clusterResourceBlacklist and that their group and kind have wildcards as values.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: AppProject") && request.args.content.contains("clusterResourceBlacklist:") && !request.args.content.matches("(?s).*clusterResourceBlacklist:.*group:\\s*[*].*kind:\\s*[*].*")'
+          message: Wildcards must be present in group and kind for clusterResourceBlacklist.
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

@@ -1,0 +1,19 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-audit-event-on-exec-generate-event-on-exec
+    annotations:
+
+        boundarylab.io/severity: low
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: Other
+spec:
+    description: Kubernetes Events are limited in that the circumstances under which they are created cannot be changed and with what they are associated is fixed. It may be advantageous in many cases to augment these out-of-the-box Events with custom Events which can be custom designed to your needs. This policy generates an Event on a Pod when an exec has been made to it. It lists the userInfo of the actor performing the exec along with the command used in the exec.
+    matchConstraints:
+        tools: []
+    validations:
+        - expression: 'false'
+          message: 'Generate rule (audit Event on exec) — BoundaryLab cannot generate resources; verify exec-into-pod events are captured via audit logging or other monitoring mechanisms'
+          action: AUDIT
+    defaultAction: ALLOW
