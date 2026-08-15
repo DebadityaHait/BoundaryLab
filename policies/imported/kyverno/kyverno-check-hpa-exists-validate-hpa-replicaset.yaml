@@ -1,0 +1,21 @@
+# CEL_LIMITATION: cross-resource existence check — cannot verify a matching HPA exists in the cluster.
+# Expression set to false (pass-through) to avoid AUDIT noise on every ReplicaSet write.
+# Requires admission webhook with cluster API access to enforce.
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-check-hpa-exists-validate-hpa-replicaset
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Other
+spec:
+    description: This policy ensures that Deployments, ReplicaSets, StatefulSets, and DaemonSets are only allowed if they have a corresponding Horizontal Pod Autoscaler (HPA) configured in the same namespace. The policy checks for the presence of an HPA that targets the resource and denies the creation or update of the resource if no such HPA exists. This policy helps enforce scaling practices and ensures that resources are managed efficiently.
+    matchConstraints:
+        tools: []
+    validations:
+        - expression: 'false'
+          message: 'CEL cannot query cluster state — cannot verify HPA exists for this ReplicaSet. Requires admission webhook with cluster API access.'
+          action: AUDIT
+    defaultAction: ALLOW

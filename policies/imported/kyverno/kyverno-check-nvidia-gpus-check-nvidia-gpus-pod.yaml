@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-check-nvidia-gpus-check-nvidia-gpus-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Other
+spec:
+    description: Containers which request use of an NVIDIA GPU often need to be authored to consume them via a CUDA environment variable called NVIDIA_VISIBLE_DEVICES. This policy checks the containers which request a GPU to ensure they have been authored with this environment variable.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("nvidia.com/gpu") && !request.args.content.contains("NVIDIA_VISIBLE_DEVICES")'
+          message: Containers requesting nvidia.com/gpu must also set the NVIDIA_VISIBLE_DEVICES environment variable.
+          action: AUDIT
+    defaultAction: ALLOW
