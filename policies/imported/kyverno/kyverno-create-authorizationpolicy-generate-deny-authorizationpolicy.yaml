@@ -1,0 +1,19 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-create-authorizationpolicy-generate-deny-authorizationpolicy
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: Istio
+spec:
+    description: An AuthorizationPolicy enables access controls on workloads in the mesh. It supports per-Namespace controls which can be a union of different behaviors. This policy creates a default deny AuthorizationPolicy for all new Namespaces. Further AuthorizationPolicies should be created to more granularly allow traffic as permitted. Use of this policy will likely require granting the Kyverno ServiceAccount additional privileges required to generate AuthorizationPolicy resources.
+    matchConstraints:
+        tools: []
+    validations:
+        - expression: 'false'
+          message: 'Generate rule (default-deny Istio AuthorizationPolicy) — BoundaryLab cannot generate resources; verify each Istio-enabled namespace has a default-deny AuthorizationPolicy'
+          action: AUDIT
+    defaultAction: ALLOW

@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-deployment-has-multiple-replicas-deployment-has-multiple-replicas-deployment
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Sample
+spec:
+    description: Deployments with a single replica cannot be highly available and thus the application may suffer downtime if that one replica goes down. This policy validates that Deployments have more than one replica.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Deployment") && request.args.content.matches(".*replicas:\\s*[01]\\b.*")'
+          message: Deployments should have more than one replica to ensure availability.
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

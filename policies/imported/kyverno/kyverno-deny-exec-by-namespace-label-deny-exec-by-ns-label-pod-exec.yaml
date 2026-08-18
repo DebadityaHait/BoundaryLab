@@ -1,0 +1,23 @@
+# imported from: policies
+# Gap: namespace-label filter — original policy blocks exec only in namespaces labelled exec=false; CEL cannot inspect namespace labels; approximates by denying dangerous interactive shell exec and auditing all other kubectl exec
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-deny-exec-by-namespace-label-deny-exec-by-ns-label-pod-exec
+    annotations:
+
+        boundarylab.io/severity: low
+        kyverno.io/category: Sample
+spec:
+    description: The `exec` command may be used to gain shell access, or run other commands, in a Pod's container. While this can be useful for troubleshooting purposes, it could represent an attack vector and is discouraged. This policy blocks Pod exec commands based upon a Namespace label `exec=false`.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && request.args.command.matches(".*kubectl\\s+exec\\b.*") && request.args.command.matches(".*(--\\s*(sh|bash|/bin/sh|/bin/bash|/bin/ash|/bin/zsh)|--\\s+sh\\s*$|--\\s+bash\\s*$).*")'
+          message: 'Interactive shell exec (sh, bash, /bin/sh, /bin/bash) into a pod container is denied. This provides unrestricted container access and is not permitted in protected namespaces.'
+          action: DENY
+        - expression: 'tool == "Bash" && request.args.command.matches(".*kubectl\\s+exec\\b.*") && !request.args.command.matches(".*(--\\s*(sh|bash|/bin/sh|/bin/bash|/bin/ash|/bin/zsh)|--\\s+sh\\s*$|--\\s+bash\\s*$).*")'
+          message: kubectl exec is audited in namespaces protected with label exec=false. Namespace labels cannot be resolved at intercept time — this exec is logged for review.
+          action: AUDIT
+    defaultAction: ALLOW

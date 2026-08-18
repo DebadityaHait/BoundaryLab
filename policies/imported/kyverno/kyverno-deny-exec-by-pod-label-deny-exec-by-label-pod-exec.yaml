@@ -1,0 +1,19 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-deny-exec-by-pod-label-deny-exec-by-label-pod-exec
+    annotations:
+
+        boundarylab.io/severity: low
+        kyverno.io/category: Sample
+spec:
+    description: The `exec` command may be used to gain shell access, or run other commands, in a Pod's container. While this can be useful for troubleshooting purposes, it could represent an attack vector and is discouraged. This policy blocks Pod exec commands to Pods having the label `exec=false`.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && request.args.command.matches(".*kubectl\\s+exec.*")'
+          message: Pod exec requires approval — Pod labels cannot be verified at request time; exec may be targeting a Pod protected by the exec=false label.
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

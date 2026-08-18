@@ -1,0 +1,19 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-deny-exec-by-pod-name-deny-exec-myapp-maintenance-pod-exec
+    annotations:
+
+        boundarylab.io/severity: low
+        kyverno.io/category: Sample
+spec:
+    description: The `exec` command may be used to gain shell access, or run other commands, in a Pod's container. While this can be useful for troubleshooting purposes, it could represent an attack vector and is discouraged. This policy blocks Pod exec commands to Pods beginning with the name `myapp-maintenance-`.
+    matchConstraints:
+        tools:
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && request.args.command.matches(".*kubectl\\s+exec.*\\bmyapp-maintenance\\b.*")'
+          message: Exec'ing into Pods called "myapp-maintenance" is not allowed.
+          action: DENY
+    defaultAction: ALLOW

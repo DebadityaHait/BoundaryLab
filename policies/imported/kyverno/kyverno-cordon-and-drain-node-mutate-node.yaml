@@ -1,0 +1,19 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-cordon-and-drain-node-mutate-node
+    annotations:
+
+        boundarylab.io/severity: low
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: Other
+spec:
+    description: There are cases where either an operations or security incident may occur and Nodes should be evacuated and placed in an unused state for further analysis. For example, a Node is found to be running a vulnerable version of a CRI engine or kernel and to minimize chances of a compromise may need to be decommissioned so another can be built. This policy shows how to use Kyverno to both cordon and drain a given Node and uses a hypothetical label being written to it called `testing=drain` to illustrate the point. For production use, the match block should be modified to trigger on the appropriate condition.
+    matchConstraints:
+        tools: []
+    validations:
+        - expression: 'false'
+          message: 'Mutate rule (cordon and drain node) — BoundaryLab cannot mutate requests; verify node cordon/drain operations follow incident response runbook and are performed by authorized operators'
+          action: AUDIT
+    defaultAction: ALLOW

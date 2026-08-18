@@ -1,0 +1,19 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-concatenate-configmaps-concat-cm
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: Other
+spec:
+    description: In some cases, an update to an existing resource should have downstream effects on a different resource in another Namespace. Rather than overwriting the target, the current state of the source can be concatenated to the target. This policy, triggered by an update to a source ConfigMap, concatenates that value of a target ConfigMap in a different Namespace.
+    matchConstraints:
+        tools: []
+    validations:
+        - expression: 'false'
+          message: 'Mutate rule (ConfigMap concatenation) — BoundaryLab cannot mutate requests; verify downstream ConfigMaps are updated when source ConfigMaps change via CI/CD or GitOps workflows'
+          action: AUDIT
+    defaultAction: ALLOW

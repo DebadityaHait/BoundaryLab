@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-deployment-replicas-higher-than-pdb-deployment-replicas-greater-minavailable-poddisruptionbudget
+    annotations:
+
+        boundarylab.io/severity: low
+        kyverno.io/category: Other
+spec:
+    description: PodDisruptionBudget resources are useful to ensuring minimum availability is maintained at all times. Introducing a PDB where there are already matching Pod controllers may pose a problem if the author is unaware of the existing replica count. This policy ensures that the minAvailable value is not greater not equal to the replica count of any matching existing Deployment. If other Pod controllers should also be included in this check, additional rules may be added to the policy which match those controllers.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: PodDisruptionBudget")'
+          message: PodDisruptionBudget minAvailable cannot be greater than or equal to the replica count of any matching existing Deployment.
+          action: AUDIT
+    defaultAction: ALLOW
