@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-disallow-empty-ingress-host-disallow-empty-ingress-host-ingress
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Best Practices
+spec:
+    description: An ingress resource needs to define an actual host name in order to be valid. This policy ensures that there is a hostname for each rule defined.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Ingress") && request.args.content.matches(".*host:\\s*$")'
+          message: The Ingress host name must be defined, not empty.
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW
