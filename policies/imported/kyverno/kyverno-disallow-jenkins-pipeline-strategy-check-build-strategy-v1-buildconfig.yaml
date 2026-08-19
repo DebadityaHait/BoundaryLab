@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-disallow-jenkins-pipeline-strategy-check-build-strategy-v1-buildconfig
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: OpenShift
+spec:
+    description: The Jenkins Pipeline Build Strategy has been deprecated. This policy prevents its use. Use OpenShift Pipelines instead.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("jenkinsPipeline:")'
+          message: Jenkins Pipeline Build Strategy has been deprecated and is not allowed
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

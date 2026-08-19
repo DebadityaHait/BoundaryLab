@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-disallow-latest-tag-require-image-tag-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Best Practices
+spec:
+    description: The ':latest' tag is mutable and can lead to unexpected errors if the image changes. A best practice is to use an immutable tag that maps to a specific version of an application Pod. This policy validates that the image specifies a tag and that it is not called `latest`.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.matches(".*image:\\s+[^\\s]+:latest.*")'
+          message: An image tag is required.
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW
