@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-enforce-sidecar-injection-namespace-check-istio-injection-enabled-namespace
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Istio
+spec:
+    description: In order for Istio to inject sidecars to workloads deployed into Namespaces, the label `istio-injection` must be set to `enabled`. This policy ensures that all new Namespaces set `istio-inject` to `enabled`.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Namespace") && !request.args.content.matches("(?s).*istio-injection.*enabled.*")'
+          message: 'Namespaces must set istio-injection: enabled for sidecar injection — audit only: cannot distinguish Istio vs non-Istio namespaces from file content'
+          action: AUDIT
+    defaultAction: ALLOW

@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-enforce-tls-hosts-host-subnets-destrule-destinationrule
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Istio
+spec:
+    description: Once a routing decision has been made, a DestinationRule can be used to define how traffic should be sent to another service. The trafficPolicy object can control how TLS is handled to the destination host. This policy enforces that the TLS mode cannot be set to a value of `DISABLE`.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("DestinationRule") && request.args.content.contains("mode: DISABLE")'
+          message: 'DestinationRule TLS mode must not be DISABLE'
+          action: DENY
+    defaultAction: ALLOW
