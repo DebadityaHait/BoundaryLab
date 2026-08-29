@@ -1,0 +1,24 @@
+# imported from: policies
+# Gap: Kyverno checks via namespaceSelector whether the *namespace* carries environment=production,
+# not the workload manifest itself. CEL cannot look up namespace labels at file-write time.
+# Expression fires when the Deployment manifest carries the label inline — will miss workloads
+# in production namespaces whose manifests do not repeat the environment label.
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-k10-data-protection-by-label-k10-data-protection-by-label-deployment
+    annotations:
+
+        boundarylab.io/severity: low
+        kyverno.io/category: Kasten K10 by Veeam in CEL
+spec:
+    description: Check the 'dataprotection' label that production Deployments and StatefulSet have a named K10 Policy. Use in combination with 'generate' ClusterPolicy to 'generate' a specific K10 Policy by name.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Deployment") && (request.args.content.contains("environment: production") || request.args.content.contains("env: production")) && !request.args.content.contains("dataprotection:")'
+          message: 'Production Deployments must have a dataprotection label for K10'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

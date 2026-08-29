@@ -1,0 +1,23 @@
+# imported from: policies
+# Gap: verifying that every host in spec.rules appears in spec.tls[].hosts requires list
+# comparison that CEL file-content matching cannot perform — trigger on Ingress+TLS presence
+# for REQUIRE_APPROVAL so a human verifies cross-field consistency.
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-ingress-host-match-tls-host-match-tls-ingress
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Other
+spec:
+    description: Ingress resources which name a host name that is not present in the TLS section can produce ingress routing failures as a TLS certificate may not correspond to the destination host. This policy ensures that the host name in an Ingress rule is also found in the list of TLS hosts.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Ingress") && request.args.content.contains("tls:")'
+          message: 'Ingress host must appear in the TLS hosts list'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

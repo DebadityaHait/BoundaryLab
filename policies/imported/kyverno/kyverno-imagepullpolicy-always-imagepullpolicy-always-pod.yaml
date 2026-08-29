@@ -1,0 +1,25 @@
+# imported from: policies
+# Gap: images with no tag at all (implicit latest, e.g. "image: nginx") cannot be detected
+# via substring matching — per-line parsing required to identify image: lines without a
+# colon-tag suffix. Only explicit :latest is caught by this expression.
+# Gap: cannot distinguish containers from other image: fields (e.g. initContainers, sidecars
+# in different spec sections) without structured YAML parsing.
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-imagepullpolicy-always-imagepullpolicy-always-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Sample
+spec:
+    description: If the `latest` tag is allowed for images, it is a good idea to have the imagePullPolicy field set to `Always` to ensure should that tag be overwritten that future pulls will get the updated image. This policy validates the imagePullPolicy is set to `Always` when the `latest` tag is specified explicitly or where a tag is not defined at all.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("image:") && !request.args.content.contains("imagePullPolicy: Always")'
+          message: 'Container images must set imagePullPolicy: Always to ensure the latest image is always pulled'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW
