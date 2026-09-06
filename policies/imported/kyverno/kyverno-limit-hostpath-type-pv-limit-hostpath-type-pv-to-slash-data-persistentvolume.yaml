@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-limit-hostpath-type-pv-limit-hostpath-type-pv-to-slash-data-persistentvolume
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Other
+spec:
+    description: hostPath persistentvolumes consume the underlying node's file system. If hostPath volumes are not to be universally disabled, they should be restricted to only certain host paths so as not to allow access to sensitive information. This policy ensures the only directory that can be mounted as a hostPath volume is /data.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("hostPath:") && !request.args.content.matches(".*path:\\s*/data\\s*$.*")'
+          message: 'hostPath PersistentVolumes must use exactly /data as their mount path — exact type field validation not possible via content scan; manual review required'
+          action: DENY
+    defaultAction: ALLOW

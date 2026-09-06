@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-kasten-immutable-location-profile-kasten-immutable-location-profile
+    annotations:
+
+        boundarylab.io/severity: low
+        kyverno.io/category: Veeam Kasten
+spec:
+    description: Ensure Kasten Location Profiles have enabled immutability to prevent unintentional or malicious changes to backup data.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: LocationProfile") && !request.args.content.contains("immutable: true")'
+          message: 'Kasten LocationProfiles must enable immutability (immutable: true)'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

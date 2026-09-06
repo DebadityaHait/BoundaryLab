@@ -1,0 +1,22 @@
+# imported from: policies
+# Gap: Kyverno uses a JMESPath context lookup against the live Kubernetes API
+# (version.info()) to retrieve the cluster's minor version at admission time.
+# CEL file-content matching has no access to cluster runtime state — mutate stub
+# retained; no content-based approximation is possible.
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-kubernetes-version-check-test-ver-ver
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Other
+spec:
+    description: It is often needed to make decisions for resources based upon the version of the Kubernetes API server in the cluster. This policy serves as an example for how to retrieve the minor version of the Kubernetes API server and subsequently use in a policy behavior. It will mutate a Secret upon its creation with a label called `apiminorversion` the value of which is the minor version of the API server.
+    matchConstraints:
+        tools: []
+    validations:
+        - expression: 'false'
+          message: 'Mutate rule — BoundaryLab does not mutate requests — manual review required'
+          action: AUDIT
+    defaultAction: ALLOW

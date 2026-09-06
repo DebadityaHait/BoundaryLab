@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-kubecost-proactive-cost-control-enforce-monthly-namespace-budget-deployment
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Kubecost
+spec:
+    description: Kubecost Enterprise allows users to define budgets for Namespaces and clusters as well as predict the cost of new Deployments based on historical cost data. By combining these abilities, users can achieve proactive cost controls for clusters with Kubecost installed by denying Deployments which would exceed the remaining configured monthly budget, if applicable. This policy checks for the creation of Deployments and compares the predicted cost of the Deployment to the remaining amount in the monthly budget, if one is found. If the predicted cost is greater than the remaining budget, the Deployment is denied. This policy requires Kubecost Enterprise at a version of 1.108 or greater.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Deployment")'
+          message: 'Deployment cost must not exceed the remaining monthly namespace budget — budget comparison requires Kubecost Enterprise and cannot be verified at request time; manual review required'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

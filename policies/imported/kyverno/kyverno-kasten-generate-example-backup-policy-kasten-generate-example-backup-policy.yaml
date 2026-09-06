@@ -1,0 +1,18 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-kasten-generate-example-backup-policy-kasten-generate-example-backup-policy
+    annotations:
+
+        boundarylab.io/severity: low
+        kyverno.io/category: Veeam Kasten
+spec:
+    description: Generates a Kasten policy for a namespace that includes any Deployment or StatefulSet with a "dataprotection=kasten-example" label, if the policy does not already exist. This Kyverno policy can be used in combination with the "kasten-data-protection-by-label" policy to require "dataprotection" labeling on workloads.
+    matchConstraints:
+        tools: []
+    validations:
+        - expression: 'false'
+          message: 'Generate rule — BoundaryLab does not generate resources — manual review required'
+          action: AUDIT
+    defaultAction: ALLOW
