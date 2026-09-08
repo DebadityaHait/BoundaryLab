@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-no-loadbalancer-service-no-loadbalancer-service
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Sample
+spec:
+    description: Especially in cloud provider environments, a Service having type LoadBalancer will cause the provider to respond by creating a load balancer somewhere in the customer account. This adds cost and complexity to a deployment. Without restricting this ability, users may easily overrun established budgets and security practices set by the organization. This policy restricts use of the Service type LoadBalancer.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("type: LoadBalancer")'
+          message: 'Services of type LoadBalancer are not allowed'
+          action: DENY
+    defaultAction: ALLOW

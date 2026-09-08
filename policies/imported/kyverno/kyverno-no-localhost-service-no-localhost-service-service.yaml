@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-no-localhost-service-no-localhost-service-service
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Sample
+spec:
+    description: A Service of type ExternalName which points back to localhost can potentially be used to exploit vulnerabilities in some Ingress controllers. This policy audits Services of type ExternalName if the externalName field refers to localhost.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("ExternalName") && request.args.content.contains("localhost")'
+          message: 'Services of type ExternalName must not point to localhost'
+          action: DENY
+    defaultAction: ALLOW

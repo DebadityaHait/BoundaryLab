@@ -1,0 +1,23 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-metadata-match-regex-check-for-regex-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Other
+spec:
+    description: Rather than a simple check to see if given metadata such as labels and annotations are present, in some cases they need to be present and the values match a specified regular expression. This policy illustrates how to ensure a label with key `corp.org/version` is both present and matches a given regex, in this case ensuring semver is met.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Pod") && !request.args.content.contains("corp.org/version:")'
+          message: 'Pods must have a corp.org/version label matching semver — label is missing'
+          action: AUDIT
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Pod") && request.args.content.matches("(?s).*corp\\.org/version:\\s+[^\\n]*[^0-9a-zA-Z.\\-][^\\n]*.*")'
+          message: 'Pods must have a corp.org/version label matching semver — label value contains invalid characters'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

@@ -1,0 +1,23 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-memory-requests-equal-limits-memory-requests-equal-limits-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Sample
+spec:
+    description: Pods which have memory limits equal to requests could be given a QoS class of Guaranteed if they also set CPU limits equal to requests. Guaranteed is the highest schedulable class. This policy checks that all containers in a given Pod have memory requests equal to limits.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("resources:") && request.args.content.matches("(?s).*limits:.*memory:.*") && !request.args.content.contains("requests:")'
+          message: 'Container defines memory limits without requests — memory requests must be set and equal to limits for Guaranteed QoS class'
+          action: REQUIRE_APPROVAL
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("resources:") && request.args.content.matches("(?s).*limits:.*memory:.*") && request.args.content.contains("requests:")'
+          message: 'Container defines memory limits and requests — verify they are equal; value equality cannot be confirmed by content scan'
+          action: AUDIT
+    defaultAction: ALLOW
