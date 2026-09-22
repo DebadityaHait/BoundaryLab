@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-prevent-linkerd-pod-injection-override-pod-injection-override-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Linkerd
+spec:
+    description: Setting the annotation on a Pod (or its controller) `linkerd.io/inject` to `disabled` may effectively disable mesh participation for that workload reducing security and visibility. This policy prevents setting the annotation `linkerd.io/inject` to `disabled` for Pods.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("linkerd.io/inject") && request.args.content.contains("disabled")'
+          message: 'Pods must not disable Linkerd mesh injection'
+          action: DENY
+    defaultAction: ALLOW

@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-prevent-linkerd-port-skipping-pod-prevent-port-skipping-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Linkerd
+spec:
+    description: Linkerd has the ability to skip inbound and outbound ports assigned to Pods, exempting them from mTLS. This can be important in some narrow use cases but generally should be avoided. This policy prevents Pods from setting the annotations `config.linkerd.io/skip-inbound-ports` or `config.linkerd.io/skip-outbound-ports`.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && (request.args.content.contains("config.linkerd.io/skip-inbound-ports") || request.args.content.contains("config.linkerd.io/skip-outbound-ports"))'
+          message: 'Pods must not skip Linkerd inbound or outbound ports'
+          action: DENY
+    defaultAction: ALLOW

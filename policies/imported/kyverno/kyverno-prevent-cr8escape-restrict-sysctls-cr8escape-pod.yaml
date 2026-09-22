@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-prevent-cr8escape-restrict-sysctls-cr8escape-pod
+    annotations:
+
+        boundarylab.io/severity: high
+        kyverno.io/category: Other
+spec:
+    description: A vulnerability "cr8escape" (CVE-2022-0811) in CRI-O the container runtime engine underpinning Kubernetes allows attackers to escape from a Kubernetes container and gain root access to the host. The recommended remediation is to disallow sysctl settings with + or = in their value.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("sysctls:") && request.args.content.matches(".*kernel\\.core_pattern.*")'
+          message: 'sysctl kernel.core_pattern override is disallowed (CVE-2022-0811 cr8escape mitigation)'
+          action: DENY
+    defaultAction: ALLOW

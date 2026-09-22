@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-prevent-disabling-injection-pods-prohibit-inject-annotation-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Istio
+spec:
+    description: One way sidecar injection in an Istio service mesh may be accomplished is by defining an annotation at the Pod level. Pods not receiving a sidecar cannot participate in the mesh thereby reducing visibility. This policy ensures that Pods cannot set the annotation `sidecar.istio.io/inject` to a value of `false`.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("sidecar.istio.io/inject") && (request.args.content.contains("\"false\"") || request.args.content.contains("''false''") || request.args.content.matches(".*sidecar\\.istio\\.io/inject:\\s*false\\b.*"))'
+          message: 'Pods must not disable Istio sidecar injection'
+          action: DENY
+    defaultAction: ALLOW
