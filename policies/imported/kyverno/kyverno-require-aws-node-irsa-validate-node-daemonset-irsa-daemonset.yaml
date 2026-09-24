@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-require-aws-node-irsa-validate-node-daemonset-irsa-daemonset
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: AWS, EKS Best Practices
+spec:
+    description: According to EKS best practices, the `aws-node` DaemonSet is configured to use a role assigned to the EC2 instances to assign IPs to Pods. This role includes several AWS managed policies that effectively allow all Pods running on a Node to attach/detach ENIs, assign/unassign IP addresses, or pull images from ECR. Since this presents a risk to your cluster, it is recommended that you update the `aws-node` DaemonSet to use IRSA. This policy ensures that the `aws-node` DaemonSet running in the `kube-system` Namespace is not still using the `aws-node` ServiceAccount.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("DaemonSet") && request.args.content.contains("aws-node") && !request.args.content.contains("eks.amazonaws.com/role-arn")'
+          message: 'The aws-node DaemonSet must use IRSA — configure the eks.amazonaws.com/role-arn annotation instead of using the EC2 instance role'
+          action: DENY
+    defaultAction: ALLOW

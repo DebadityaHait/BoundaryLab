@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-require-emptydir-requests-and-limits-check-emptydir-requests-limits-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Other
+spec:
+    description: Pods which mount emptyDir volumes may be allowed to potentially overrun the medium backing the emptyDir volume. This sample ensures that any initContainers or containers mounting an emptyDir volume have ephemeral-storage requests and limits set. Policy will be skipped if the volume has already a sizeLimit set.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("emptyDir:") && !request.args.content.contains("sizeLimit:") && !request.args.content.contains("ephemeral-storage:")'
+          message: 'Containers mounting emptyDir volumes must set ephemeral-storage requests and limits, or configure a sizeLimit on the emptyDir volume'
+          action: DENY
+    defaultAction: ALLOW

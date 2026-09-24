@@ -1,0 +1,23 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-require-container-port-names-port-name-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Other
+spec:
+    description: 'Containers may define ports on which they listen. In addition to a port number, a name field may optionally be used. Including a name makes it easier when defining Service resource definitions and others since the name may be referenced allowing the port number to change. This policy requires that for every containerPort defined there is also a name specified. '
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        # CEL_LIMITATION: !contains("name:") is a false-negative risk — metadata.name or other name: keys
+        # satisfy the check even when the containerPort block itself lacks a name. Downgraded to
+        # REQUIRE_APPROVAL; a human reviewer must verify the name field is inside the port block.
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("containerPort:")'
+          message: 'Review required: verify every containerPort definition also has a name field in the same port block'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

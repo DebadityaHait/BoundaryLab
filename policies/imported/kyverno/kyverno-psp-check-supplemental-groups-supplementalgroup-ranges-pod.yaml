@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-psp-check-supplemental-groups-supplementalgroup-ranges-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: PSP Migration
+spec:
+    description: Supplemental groups control which group IDs containers add and can coincide with restricted groups on the host. Pod Security Policies (PSP) allowed a range of these group IDs to be specified which were allowed. This policy ensures any Pod may only specify supplementalGroup IDs between 100-200 or 500-600.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("supplementalGroups:")'
+          message: 'Manifests specifying supplementalGroups must be reviewed — only GIDs in ranges 100-200 or 500-600 are permitted'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

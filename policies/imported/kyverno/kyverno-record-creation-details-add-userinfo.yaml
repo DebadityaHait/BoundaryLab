@@ -1,0 +1,27 @@
+# CEL_LIMITATION (class: mutate/generate): Kyverno mutate rules run server-side inside the
+# Kubernetes admission webhook and can modify the resource object before it is persisted.
+# BoundaryLab CEL runs client-side at agent tool-call time and has no mechanism to rewrite manifest
+# content or inject fields. All Kyverno mutate/generate policies in this batch are therefore
+# translated to false + AUDIT. The stub loads and appears in governance output but never blocks.
+# MUTATE policy: translated to false + AUDIT (BoundaryLab cannot inject annotations at runtime)
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-record-creation-details-add-userinfo
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: Other
+spec:
+    description: Kubernetes by default does not make a record of who or what created a resource in that resource itself. It must be retrieved from an audit log, if enabled, which can make it difficult for cluster operators to know who was responsible for an object's creation. This policy writes an annotation with the key `kyverno.io/created-by` having all the userInfo fields present in the AdmissionReview request for any object being created. It then protects this annotation from tampering or removal making it immutable. Although this policy matches on all kinds ("*") it is highly recommend to more narrowly scope it to only the resources which should be labeled.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: 'false'
+          message: 'Mutation policy translated to audit-only — BoundaryLab cannot inject userInfo annotations at runtime'
+          action: AUDIT
+    defaultAction: ALLOW

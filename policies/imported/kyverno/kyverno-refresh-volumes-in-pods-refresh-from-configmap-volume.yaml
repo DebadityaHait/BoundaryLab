@@ -1,0 +1,27 @@
+# CEL_LIMITATION (class: mutate/generate): Kyverno mutate rules run server-side inside the
+# Kubernetes admission webhook and can modify the resource object before it is persisted.
+# BoundaryLab CEL runs client-side at agent tool-call time and has no mechanism to rewrite manifest
+# content or inject fields. All Kyverno mutate/generate policies in this batch are therefore
+# translated to false + AUDIT. The stub loads and appears in governance output but never blocks.
+# MUTATE policy: translated to false + AUDIT (BoundaryLab cannot write annotations to Pods at runtime)
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-refresh-volumes-in-pods-refresh-from-configmap-volume
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: Other
+spec:
+    description: Although ConfigMaps and Secrets mounted as volumes to a Pod, when the contents change, will eventually propagate to the Pods mounting them, this process may take between 60-90 seconds. In order to reduce that time, a modification made to downstream Pods will cause the changes to take effect almost instantly. This policy watches for changes to ConfigMaps which have been marked for this quick reloading process which contain the label `kyverno.io/watch=true` and will write an annotation to any Pods which mount them as volumes causing a fast refresh in their contents. See the related policy entitled "Refresh Environment Variables in Pods" for a similar reloading process when ConfigMaps and Secrets are consumed as environment variables instead. Use of this policy may require providing the Kyverno ServiceAccount with permission to update Pods.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: 'false'
+          message: 'Mutation policy translated to audit-only — BoundaryLab cannot trigger Pod annotation writes in response to ConfigMap changes'
+          action: AUDIT
+    defaultAction: ALLOW

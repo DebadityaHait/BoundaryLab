@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-require-encryption-aws-loadbalancers-aws-loadbalancer-has-ssl-cert-service
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: AWS, EKS Best Practices
+spec:
+    description: Services of type LoadBalancer when deployed inside AWS have support for transport encryption if it is enabled via an annotation. This policy requires that Services of type LoadBalancer contain the annotation service.beta.kubernetes.io/aws-load-balancer-ssl-cert with some value.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("LoadBalancer") && !request.args.content.contains("aws-load-balancer-ssl-cert")'
+          message: 'AWS LoadBalancer Services must include the service.beta.kubernetes.io/aws-load-balancer-ssl-cert annotation'
+          action: DENY
+    defaultAction: ALLOW

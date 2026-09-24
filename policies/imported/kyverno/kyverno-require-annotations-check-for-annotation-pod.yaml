@@ -1,0 +1,24 @@
+# CEL_LIMITATION: the original policy checks for a specific annotation key (corp.org/department) inside the
+# annotations block. content.contains("annotations:") cannot verify which keys are present inside that block,
+# only that the block exists. Additionally, !contains("annotations:") would fire on all manifests including
+# non-Pod kinds that legitimately omit annotations. Downgraded to REQUIRE_APPROVAL with content narrowing.
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-require-annotations-check-for-annotation-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Other
+spec:
+    description: 'Define and use annotations that identify semantic attributes of your application or Deployment. A common set of annotations allows tools to work collaboratively, describing objects in a common manner that all tools can understand. The recommended annotations describe applications in a way that can be queried. This policy validates that the annotation `corp.org/department` is specified with some value. '
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Pod") && !request.args.content.contains("corp.org/department")'
+          message: 'Pod manifests must include the corp.org/department annotation — review and add the annotation before applying'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

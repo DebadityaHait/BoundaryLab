@@ -1,0 +1,21 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-require-authorizationpolicies-check-authz-pol-namespace
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: low
+        kyverno.io/category: Istio
+spec:
+    description: An AuthorizationPolicy is used to provide access controls for traffic in the mesh and can be defined at multiple levels. For the Namespace level, all Namespaces should have at least one AuthorizationPolicy. This policy, designed to run in background mode for reporting purposes, ensures every Namespace has at least one AuthorizationPolicy.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Namespace")'
+          message: 'Namespace write detected — verify that at least one AuthorizationPolicy exists for this namespace; cross-resource existence check requires Kyverno background scan for full enforcement'
+          action: AUDIT
+    defaultAction: ALLOW

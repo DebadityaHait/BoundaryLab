@@ -1,0 +1,27 @@
+# CEL_LIMITATION (class: mutate/generate): Kyverno mutate rules run server-side inside the
+# Kubernetes admission webhook and can modify the resource object before it is persisted.
+# BoundaryLab CEL runs client-side at agent tool-call time and has no mechanism to rewrite manifest
+# content or inject fields. All Kyverno mutate/generate policies in this batch are therefore
+# translated to false + AUDIT. The stub loads and appears in governance output but never blocks.
+# MUTATE policy: translated to false + AUDIT (BoundaryLab cannot strip hostPath volumes from manifests at runtime)
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-remove-hostpath-volumes-remove-hostpath-all
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: Other
+spec:
+    description: Pods which mount hostPath volumes are provided access to the underlying filesystem of the Node on which they run. In most scenarios, this should be forbidden. In others, it may be useful to silently remove those hostPath volumes rather than blocking the Pod. This policy removes all hostPath volumes and their volumeMount references from all containers within a Pod.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: 'false'
+          message: 'Mutation policy translated to audit-only — BoundaryLab cannot remove hostPath volumes from manifests at runtime'
+          action: AUDIT
+    defaultAction: ALLOW
