@@ -1,0 +1,21 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-require-network-policy-require-network-policy-deployment
+    annotations:
+
+        boundarylab.io/severity: low
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: Sample
+spec:
+    description: NetworkPolicy is used to control Pod-to-Pod communication and is a good practice to ensure only authorized Pods can send/receive traffic. This policy checks incoming Deployments to ensure they have a matching, preexisting NetworkPolicy.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Deployment")'
+          message: 'Deployment write detected — verify that a matching NetworkPolicy exists for this deployment''s pod selector; cross-resource existence check requires Kyverno'
+          action: AUDIT
+    defaultAction: ALLOW

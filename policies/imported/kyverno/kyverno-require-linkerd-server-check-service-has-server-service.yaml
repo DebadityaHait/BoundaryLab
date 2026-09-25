@@ -1,0 +1,25 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-require-linkerd-server-check-service-has-server-service
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: Linkerd
+spec:
+    description: In Linkerd 2.11, a Server resource selects ports on a set of Pods in the same Namespace and is used to deny traffic which then must be authorized later. Ensuring that Linkerd policy is enforced on Pods in the mesh is important to maintaining a secure environment. This policy, requiring Linkerd 2.11+, has two rules designed to check Deployments (exposing ports) and Services to ensure a corresponding Server resource exists first.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+            - Bash
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Service") && request.args.content.contains("port:")'
+          message: 'Service exposes ports but a corresponding Linkerd Server resource may not exist — verify a Server resource exists in this namespace before applying; cross-resource check requires Kyverno'
+          action: AUDIT
+        - expression: 'tool == "Bash" && request.args.command.matches(".*kubectl.*delete.*server.*")'
+          message: 'Deleting a Linkerd Server resource may leave active Services without Linkerd policy enforcement — verify no active workloads depend on this Server before deleting'
+          action: DENY
+    defaultAction: ALLOW

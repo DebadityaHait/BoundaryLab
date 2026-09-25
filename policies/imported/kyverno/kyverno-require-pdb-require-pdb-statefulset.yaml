@@ -1,0 +1,21 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-require-pdb-require-pdb-statefulset
+    annotations:
+
+        boundarylab.io/severity: low
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: Sample, EKS Best Practices
+spec:
+    description: 'PodDisruptionBudget resources are useful to ensuring minimum availability is maintained at all times. This policy checks all incoming Deployments and StatefulSets to ensure they have a matching, preexisting PodDisruptionBudget. Note: This policy must be run in `enforce` mode to ensure accuracy.'
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: StatefulSet")'
+          message: 'StatefulSet write detected — verify that a matching PodDisruptionBudget exists for this statefulset; cross-resource existence check requires Kyverno for full enforcement'
+          action: AUDIT
+    defaultAction: ALLOW

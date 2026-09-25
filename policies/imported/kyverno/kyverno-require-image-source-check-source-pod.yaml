@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-require-image-source-check-source-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Other
+spec:
+    description: Images can be built from a variety of source control locations and the name does not necessarily indicate this mapping. Ensuring that known good repositories are the source of images helps ensure supply chain security. This policy checks the container images and ensures that they specify the source in either a label `org.opencontainers.image.source` or a newer annotation in the manifest of the same name.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("containers:") && !request.args.content.contains("org.opencontainers.image.source")'
+          message: 'Container images must specify org.opencontainers.image.source label or annotation'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

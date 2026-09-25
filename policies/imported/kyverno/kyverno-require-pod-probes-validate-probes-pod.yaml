@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-require-pod-probes-validate-probes-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Best Practices, EKS Best Practices
+spec:
+    description: Liveness and readiness probes need to be configured to correctly manage a Pod's lifecycle during deployments, restarts, and upgrades. For each Pod, a periodic `livenessProbe` is performed by the kubelet to determine if the Pod's containers are running or need to be restarted. A `readinessProbe` is used by Services and Deployments to determine if the Pod is ready to receive network traffic. This policy validates that all containers have one of livenessProbe, readinessProbe, or startupProbe defined.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("containers:") && !request.args.content.contains("livenessProbe:") && !request.args.content.contains("readinessProbe:") && !request.args.content.contains("startupProbe:")'
+          message: 'Containers must define at least one of: livenessProbe, readinessProbe, or startupProbe'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

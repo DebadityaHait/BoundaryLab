@@ -1,0 +1,23 @@
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-require-replicas-allow-disruption-replicas-check-deployment
+    annotations:
+
+        boundarylab.io/severity: low
+        kyverno.io/category: Other
+spec:
+    description: Existing PodDisruptionBudgets can apply to all future matching Pod controllers. If the minAvailable field is defined for such matching PDBs and the replica count of a new Deployment or StatefulSet is lower than that, then availability could be negatively impacted. This policy specifies that Deployment/StatefulSet replicas exceed the minAvailable value of all matching PodDisruptionBudgets which specify minAvailable as a number and not percentage.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && request.args.command.matches(".*kubectl\\s+delete\\s+pdb\\b.*")'
+          message: 'Deleting a PodDisruptionBudget may remove availability protection for a Deployment — ensure the Deployment replica count still satisfies availability requirements'
+          action: REQUIRE_APPROVAL
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Deployment") && request.args.content.contains("replicas:")'
+          message: 'AUDIT: Deployment replica count must exceed the minAvailable of any matching PodDisruptionBudget — cross-resource validation cannot be enforced inline; verify PDB compatibility manually'
+          action: AUDIT
+    defaultAction: ALLOW

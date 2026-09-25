@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-require-pod-priorityclassname-check-priorityclassname-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Multi-Tenancy, EKS Best Practices
+spec:
+    description: A Pod may optionally specify a priorityClassName which indicates the scheduling priority relative to others. This requires creation of a PriorityClass object in advance. With this created, a Pod may set this field to that value. In a multi-tenant environment, it is often desired to require this priorityClassName be set to make certain tenant scheduling guarantees. This policy requires that a Pod defines the priorityClassName field with some value.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("containers:") && !request.args.content.contains("priorityClassName:")'
+          message: 'Pods must define priorityClassName'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

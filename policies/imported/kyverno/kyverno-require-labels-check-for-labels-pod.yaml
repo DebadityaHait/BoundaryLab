@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-require-labels-check-for-labels-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Best Practices
+spec:
+    description: Define and use labels that identify semantic attributes of your application or Deployment. A common set of labels allows tools to work collaboratively, describing objects in a common manner that all tools can understand. The recommended labels describe applications in a way that can be queried. This policy validates that the label `app.kubernetes.io/name` is specified with some value.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("containers:") && !request.args.content.contains("labels:")'
+          message: 'Pods must define the label app.kubernetes.io/name'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-require-linkerd-mesh-injection-require-mesh-annotation-namespace
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Linkerd
+spec:
+    description: Sidecar proxy injection in Linkerd may be handled at the Namespace level by setting the annotation `linkerd.io/inject` to `enabled`. This policy enforces that all Namespaces contain the annotation `linkerd.io/inject` set to `enabled`.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Namespace") && !request.args.content.contains("linkerd.io/inject: enabled")'
+          message: 'Namespaces must have the annotation linkerd.io/inject: enabled'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW
