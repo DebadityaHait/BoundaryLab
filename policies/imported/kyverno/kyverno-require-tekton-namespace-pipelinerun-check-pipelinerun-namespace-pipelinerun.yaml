@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-require-tekton-namespace-pipelinerun-check-pipelinerun-namespace-pipelinerun
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Tekton
+spec:
+    description: A Namespace is required for a PipelineRun and may not be set to `default`.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: PipelineRun") && (request.args.content.contains("namespace: default") || !request.args.content.contains("namespace:"))'
+          message: 'PipelineRun must specify a non-default namespace'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

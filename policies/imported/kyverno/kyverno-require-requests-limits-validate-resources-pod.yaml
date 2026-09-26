@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-require-requests-limits-validate-resources-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Best Practices, EKS Best Practices
+spec:
+    description: As application workloads share cluster resources, it is important to limit resources requested and consumed by each Pod. It is recommended to require resource requests and limits per Pod, especially for memory and CPU. If a Namespace level request or limit is specified, defaults will automatically be applied to each Pod based on the LimitRange configuration. This policy validates that all containers have something specified for memory and CPU requests and memory limits.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("containers:") && (!request.args.content.contains("limits:") || !request.args.content.contains("requests:"))'
+          message: 'Containers must define both resource requests and limits'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

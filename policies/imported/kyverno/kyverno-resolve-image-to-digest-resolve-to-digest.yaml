@@ -1,0 +1,21 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-resolve-image-to-digest-resolve-to-digest
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: Other
+spec:
+    description: Image tags are mutable and the change of an image can result in the same tag. This policy resolves the image digest of each image in a container and replaces the image with the fully resolved reference which includes the digest rather than tag.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("image:")'
+          message: 'Images should be pinned to digest rather than mutable tags — BoundaryLab cannot auto-mutate; resolve image digests manually before applying'
+          action: AUDIT
+    defaultAction: ALLOW

@@ -1,0 +1,19 @@
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-require-unique-uid-per-workload-require-unique-uid-pod
+    annotations:
+
+        boundarylab.io/severity: low
+        kyverno.io/category: Other
+spec:
+    description: Two distinct workloads should not share a UID so that in a multitenant environment, applications from different projects never run as the same user ID. When using persistent storage, any files created by applications will also have different ownership in the file system. Running processes for applications as different user IDs means that if a security vulnerability were ever discovered in the underlying container runtime, and an application were able to break out of the container to the host, they would not be able to interact with processes owned by other users, or from other applications, in other projects.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("runAsUser:")'
+          message: 'AUDIT: Workloads must use unique UIDs per namespace — cross-workload UID uniqueness cannot be verified from the manifest alone; ensure runAsUser values are distinct across workloads in this namespace'
+          action: AUDIT
+    defaultAction: ALLOW

@@ -1,0 +1,19 @@
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-require-unique-service-selector-check-service-selector-service
+    annotations:
+
+        boundarylab.io/severity: low
+        kyverno.io/category: Other
+spec:
+    description: Services select eligible Pods by way of label matches. Having multiple Service apply based on same labels can cause conflicts and have unintended consequences. This policy ensures that within the same Namespace a Service has a unique set of labels as a selector.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Service") && request.args.content.contains("selector:")'
+          message: 'AUDIT: Service selectors must be unique within a namespace — cross-resource uniqueness cannot be verified from the manifest alone; verify no other Service uses the same selector labels'
+          action: AUDIT
+    defaultAction: ALLOW

@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-require-run-as-nonroot-run-as-non-root-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Pod Security Standards (Restricted)
+spec:
+    description: Containers must be required to run as non-root users. This policy ensures `runAsNonRoot` is set to `true`. A known issue prevents a policy such as this using `anyPattern` from being persisted properly in Kubernetes 1.23.0-1.23.2.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("containers:") && !request.args.content.contains("runAsNonRoot: true")'
+          message: 'Pods must set runAsNonRoot: true in their security context'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

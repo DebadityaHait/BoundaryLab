@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-restrict-annotations-block-flux-v1-pod
+    annotations:
+
+        boundarylab.io/severity: low
+        kyverno.io/category: Sample
+spec:
+    description: Some annotations control functionality driven by other cluster-wide tools and are not normally set by some class of users. This policy prevents the use of an annotation beginning with `flux.weave.works/` (Flux v1/Weave Flux). This can be useful to ensure users either don't set reserved annotations or to force them to use a newer version of an annotation.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("flux.weave.works/")'
+          message: 'Flux v1 annotations (flux.weave.works/) are not permitted on cluster resources'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

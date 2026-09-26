@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-require-tekton-securitycontext-check-step-securitycontext-tekton-dev-v1beta1-taskrun-status
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Tekton
+spec:
+    description: A securityContext is required for each TaskRun step.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: TaskRun") && !request.args.content.contains("securityContext:")'
+          message: 'TaskRun steps must specify a securityContext'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW
