@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-restrict-clusterrole-nodesproxy-clusterrole-nodesproxy-clusterrole
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Sample
+spec:
+    description: 'A ClusterRole with nodes/proxy resource access allows a user to perform anything the kubelet API allows. It also allows users to bypass the API server and talk directly to the kubelet potentially circumventing audits and admission controllers. See https://blog.aquasec.com/privilege-escalation-kubernetes-rbac for more info. This policy prevents the creation of a ClusterRole if it contains the nodes/proxy resource. '
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("nodes/proxy")'
+          message: 'ClusterRoles must not grant access to the nodes/proxy resource'
+          action: DENY
+    defaultAction: ALLOW

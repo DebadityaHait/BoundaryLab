@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-restrict-binding-system-groups-restrict-masters-clusterrolebinding
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Security, EKS Best Practices
+spec:
+    description: Certain system groups exist in Kubernetes which grant permissions that are used for certain system-level functions yet typically never appropriate for other users. This policy prevents creating bindings to some of these groups including system:anonymous, system:unauthenticated, and system:masters.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("system:masters")'
+          message: 'Bindings to system:masters are not permitted'
+          action: DENY
+    defaultAction: ALLOW

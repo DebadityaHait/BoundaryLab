@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-restrict-apparmor-profiles-app-armor-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Pod Security Standards (Baseline)
+spec:
+    description: On supported hosts, the 'runtime/default' AppArmor profile is applied by default. The default policy should prevent overriding or disabling the policy, or restrict overrides to an allowed set of profiles. This policy ensures Pods do not specify any other AppArmor profiles than `runtime/default` or `localhost/*`.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("container.apparmor.security.beta.kubernetes.io")'
+          message: 'AppArmor profiles must be set to runtime/default or localhost/*'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

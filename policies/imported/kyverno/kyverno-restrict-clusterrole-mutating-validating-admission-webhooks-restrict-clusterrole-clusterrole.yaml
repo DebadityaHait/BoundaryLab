@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-restrict-clusterrole-mutating-validating-admission-webhooks-restrict-clusterrole-clusterrole
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Other
+spec:
+    description: ClusterRoles that grant write permissions over admission webhook should be minimized to reduce powerful identities in the cluster. This policy checks to ensure write permissions are not provided to admission webhooks.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$")'
+          message: 'Policy validation required — review manifest before applying'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

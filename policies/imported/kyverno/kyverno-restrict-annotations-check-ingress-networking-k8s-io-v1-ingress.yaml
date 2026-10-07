@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-restrict-annotations-check-ingress-networking-k8s-io-v1-ingress
+    annotations:
+
+        boundarylab.io/severity: high
+        kyverno.io/category: Security, NGINX Ingress in CEL
+spec:
+    description: 'This policy mitigates CVE-2021-25746 by restricting `metadata.annotations` to safe values. See: https://github.com/kubernetes/ingress-nginx/blame/main/internal/ingress/inspector/rules.go. This issue has been fixed in NGINX Ingress v1.2.0. For NGINX Ingress version 1.0.5+ the "annotation-value-word-blocklist" configuration setting is also recommended. Please refer to the CVE for details. '
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("nginx.ingress.kubernetes.io/")'
+          message: 'CVE-2021-25746: NGINX Ingress annotations must use safe values — review annotation values against the NGINX Ingress blocklist before applying'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

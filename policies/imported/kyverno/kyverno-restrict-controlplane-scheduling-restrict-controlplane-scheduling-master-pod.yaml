@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-restrict-controlplane-scheduling-restrict-controlplane-scheduling-master-pod
+    annotations:
+
+        boundarylab.io/severity: low
+        kyverno.io/category: Sample
+spec:
+    description: Scheduling non-system Pods to control plane nodes (which run kubelet) is often undesirable because it takes away resources from the control plane components and can represent a possible security threat vector. This policy prevents users from setting a toleration in a Pod spec which allows running on control plane nodes with the taint key `node-role.kubernetes.io/master`.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && (request.args.content.contains("node-role.kubernetes.io/master") || request.args.content.contains("node-role.kubernetes.io/control-plane"))'
+          message: 'Pods must not be scheduled on control-plane nodes'
+          action: DENY
+    defaultAction: ALLOW

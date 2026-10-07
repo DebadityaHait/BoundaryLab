@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-restrict-binding-clusteradmin-clusteradmin-bindings-clusterrolebinding
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Security
+spec:
+    description: The cluster-admin ClusterRole allows any action to be performed on any resource in the cluster and its granting should be heavily restricted. This policy prevents binding to the cluster-admin ClusterRole in RoleBinding or ClusterRoleBinding resources.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("cluster-admin")'
+          message: 'Binding to the cluster-admin ClusterRole is restricted'
+          action: DENY
+    defaultAction: ALLOW
