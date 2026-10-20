@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-restrict-deprecated-registry-restrict-deprecated-registry-pod
+    annotations:
+
+        boundarylab.io/severity: high
+        kyverno.io/category: Best Practices, EKS Best Practices
+spec:
+    description: 'Legacy k8s.gcr.io container image registry will be frozen in early April 2023 k8s.gcr.io image registry will be frozen from the 3rd of April 2023. Images for Kubernetes 1.27 will not be available in the k8s.gcr.io image registry. Please read our announcement for more details. https://kubernetes.io/blog/2023/02/06/k8s-gcr-io-freeze-announcement/ '
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.matches(".*image:.*k8s\\.gcr\\.io/.*")'
+          message: 'Images from the deprecated k8s.gcr.io registry are not permitted — migrate to registry.k8s.io'
+          action: DENY
+    defaultAction: ALLOW

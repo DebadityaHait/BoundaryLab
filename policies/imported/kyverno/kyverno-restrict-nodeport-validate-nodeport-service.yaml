@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-restrict-nodeport-validate-nodeport-service
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Best Practices
+spec:
+    description: A Kubernetes Service of type NodePort uses a host port to receive traffic from any source. A NetworkPolicy cannot be used to control traffic to host ports. Although NodePort Services can be useful, their use must be limited to Services with additional upstream security checks. This policy validates that any new Services do not use the `NodePort` type.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && (request.args.content.contains("type: NodePort") || request.args.content.contains("nodePort:"))'
+          message: 'NodePort Services expose host ports — use ClusterIP or LoadBalancer instead'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

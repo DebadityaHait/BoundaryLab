@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-restrict-external-ips-check-ips-service
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Best Practices
+spec:
+    description: 'Service externalIPs can be used for a MITM attack (CVE-2020-8554). Restrict externalIPs or limit to a known set of addresses. See: https://github.com/kyverno/kyverno/issues/1367. This policy validates that the `externalIPs` field is not set on a Service.'
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("externalIPs:")'
+          message: 'Services must not set externalIPs (CVE-2020-8554 MITM risk)'
+          action: DENY
+    defaultAction: ALLOW

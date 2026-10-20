@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-restrict-escalation-verbs-roles-escalate-clusterrole
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Security
+spec:
+    description: The verbs `impersonate`, `bind`, and `escalate` may all potentially lead to privilege escalation and should be tightly controlled. This policy prevents use of these verbs in Role or ClusterRole resources.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && (request.args.content.contains("escalate") || request.args.content.contains("impersonate") || request.args.content.contains("bind")) && request.args.content.contains("verbs:")'
+          message: 'Roles must not grant escalate, impersonate, or bind verbs'
+          action: DENY
+    defaultAction: ALLOW

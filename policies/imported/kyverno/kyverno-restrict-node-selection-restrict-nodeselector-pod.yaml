@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-restrict-node-selection-restrict-nodeselector-pod
+    annotations:
+
+        boundarylab.io/severity: low
+        kyverno.io/category: Sample
+spec:
+    description: The Kubernetes scheduler uses complex logic to determine the optimal placement for new Pods. Users who have access to set certain fields in a Pod spec may sidestep this logic which in many cases is undesirable. This policy prevents users from targeting specific Nodes for scheduling of Pods by prohibiting the use of the `nodeSelector` and `nodeName` fields. Note that this policy is only designed to work on initial creation and not in background mode.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("nodeSelector:")'
+          message: 'nodeSelector bypasses the scheduler — use node affinity rules instead'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW
