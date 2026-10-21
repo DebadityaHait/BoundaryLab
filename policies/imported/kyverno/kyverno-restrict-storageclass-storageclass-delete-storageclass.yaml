@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-restrict-storageclass-storageclass-delete-storageclass
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Other, Multi-Tenancy
+spec:
+    description: StorageClasses allow description of custom "classes" of storage offered by the cluster, based on quality-of-service levels, backup policies, or custom policies determined by the cluster administrators. For shared StorageClasses in a multi-tenancy environment, a reclaimPolicy of `Delete` should be used to ensure a PersistentVolume cannot be reused across Namespaces. This policy requires StorageClasses set a reclaimPolicy of `Delete`.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: StorageClass") && !request.args.content.contains("reclaimPolicy: Delete")'
+          message: 'StorageClass reclaimPolicy must be Delete — manifests missing reclaimPolicy: Delete require review'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

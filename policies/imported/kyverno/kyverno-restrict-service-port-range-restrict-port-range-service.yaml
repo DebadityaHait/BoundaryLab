@@ -1,0 +1,26 @@
+# CEL_LIMITATION: original policy uses JMESPath numeric comparison on spec.ports[*].port values
+# to enforce the range 32000-33000. CEL operates on raw content strings and cannot extract numeric
+# field values for arithmetic comparison. Content regex can detect a port field exists but cannot
+# validate the numeric range — false-negatives for all out-of-range ports, false-positives for
+# manifests with port fields that are in range. REQUIRE_APPROVAL fires on any manifest with a port
+# field, not selectively on out-of-range values.
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-restrict-service-port-range-restrict-port-range-service
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Other
+spec:
+    description: Services which are allowed to expose any port number may be able to impact other applications running on the Node which require them, or may make specifying security policy externally more challenging. This policy enforces that only the port range 32000 to 33000 may be used for Service resources.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("port:")'
+          message: 'Service port must be in the range 32000-33000 — CEL cannot validate numeric range, manual review required'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

@@ -1,0 +1,23 @@
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-restrict-scale-scale-max-eight-annotations-deployment-scale
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Other
+spec:
+    description: Pod controllers such as Deployments which implement replicas and permit the scale action use a `/scale` subresource to control this behavior. In addition to checks for creations of such controllers that their replica is in a certain shape, the scale operation and subresource needs to be accounted for as well. This policy, operable beginning in Kyverno 1.9, is a collection of rules which can be used to limit the replica count both upon creation of a Deployment and when a scale operation is performed.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+            - Bash
+    validations:
+        - expression: 'tool == "Bash" && request.args.command.matches(".*kubectl\\s+scale.*--replicas=([89]|[1-9][0-9]+)\\b.*")'
+          message: 'kubectl scale to 9 or more replicas requires approval — annotation-based limit is max 8'
+          action: REQUIRE_APPROVAL
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Deployment") && request.args.content.contains("replicas:")'
+          message: 'AUDIT: Verify Deployment replica count does not exceed the annotation-based maximum (scale-max: "8")'
+          action: AUDIT
+    defaultAction: ALLOW
