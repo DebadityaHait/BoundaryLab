@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-service-mesh-disallow-capabilities-adding-capabilities-istio-linkerd-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Istio, Linkerd, Pod Security Standards (Baseline)
+spec:
+    description: This policy is a variation of the disallow-capabilities policy that is a part of the Pod Security Standards (Baseline) category. It enforces the same control but with provisions for common service mesh initContainers from Istio and Linkerd which need the additional capabilities, NET_ADMIN and NET_RAW. For more information and context, see the Kyverno blog post at https://kyverno.io/blog/2024/02/04/securing-services-meshes-easier-with-kyverno/.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("capabilities:") && request.args.content.contains("add:")'
+          message: 'Service mesh workloads must not add Linux capabilities'
+          action: DENY
+    defaultAction: ALLOW

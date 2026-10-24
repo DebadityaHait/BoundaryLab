@@ -1,0 +1,21 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-team-validate-ns-name-team-validate-ns-name-project
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: OpenShift
+spec:
+    description: Naming patterns are commonplace in clusters where creation activities are granted to other users. In order to maintain organization, it is often such that patterns should be established for organizational consistency. This policy denies the creation of a Namespace if the name of the Namespace does not follow a specific naming defined by the cluster admins.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Project") && !request.args.content.matches(".*name:\\s+[a-z][a-z0-9]*-[a-z][a-z0-9]*-[a-z][a-z0-9]*\\s*\\n.*")'
+          message: 'Project names must follow the team-<team>-<env> pattern (three lowercase dash-separated segments)'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

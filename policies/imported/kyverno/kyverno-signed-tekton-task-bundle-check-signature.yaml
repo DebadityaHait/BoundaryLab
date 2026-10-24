@@ -1,0 +1,19 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-signed-tekton-task-bundle-check-signature
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: Tekton
+spec:
+    description: A signed bundle is required.
+    matchConstraints:
+        tools: []
+    validations:
+        - expression: 'false'
+          message: 'Tekton task bundle signature verification cannot be performed in CEL — manual review required'
+          action: AUDIT
+    defaultAction: ALLOW

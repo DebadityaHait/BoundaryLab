@@ -1,0 +1,26 @@
+# CEL_LIMITATION: original policy is a MUTATE rule that fires only on resources with label
+# distributed=required and injects topologySpreadConstraints. It does NOT validate all Deployments.
+# The translation below approximates as a validate rule but cannot check the label selector —
+# it will REQUIRE_APPROVAL on all Deployments/StatefulSets lacking topologySpreadConstraints,
+# including those that legitimately lack the distributed=required label. This is an over-trigger.
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-spread-pods-spread-pods-across-nodes
+    annotations:
+
+        boundarylab.io/severity: low
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: Sample
+spec:
+    description: Deployments to a Kubernetes cluster with multiple availability zones often need to distribute those replicas to align with those zones to ensure site-level failures do not impact availability. This policy matches Deployments with the label `distributed=required` and mutates them to spread Pods across zones.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && (request.args.content.contains("kind: Deployment") || request.args.content.contains("kind: StatefulSet")) && request.args.content.contains("distributed: required") && !request.args.content.contains("topologySpreadConstraints:")'
+          message: 'Deployments/StatefulSets with distributed=required must define topologySpreadConstraints'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

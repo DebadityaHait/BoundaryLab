@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-service-mesh-require-run-as-nonroot-run-as-non-root-istio-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Istio, Pod Security Standards (Restricted)
+spec:
+    description: This policy is a variation of the Require runAsNonRoot policy that is a part of the Pod Security Standards (Restricted) category. It enforces the same control but with provisions for Istio's initContainer. For more information and context, see the Kyverno blog post at https://kyverno.io/blog/2024/02/04/securing-services-meshes-easier-with-kyverno/.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && !request.args.content.contains("runAsNonRoot: true")'
+          message: 'Service mesh Pods must set runAsNonRoot: true'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

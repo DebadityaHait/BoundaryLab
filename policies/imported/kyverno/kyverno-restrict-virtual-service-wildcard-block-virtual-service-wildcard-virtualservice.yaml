@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-restrict-virtual-service-wildcard-block-virtual-service-wildcard-virtualservice
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Istio
+spec:
+    description: Virtual Services optionally accept a wildcard as an alternative to precise matching. In some cases, this may be too permissive as it would direct unintended traffic to the given resource. This policy enforces that any Virtual Service host does not contain a wildcard character and allows for more governance when a single mesh deployment model is used.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("hosts:") && request.args.content.matches(".*hosts:.*\\*.*")'
+          message: 'VirtualService hosts must not use wildcard (*) entries'
+          action: DENY
+    defaultAction: ALLOW
