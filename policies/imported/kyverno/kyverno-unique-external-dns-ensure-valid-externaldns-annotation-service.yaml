@@ -1,0 +1,25 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-unique-external-dns-ensure-valid-externaldns-annotation-service
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: Other
+spec:
+    description: ExternalDNS, part of Kubernetes SIGs, triggers the creation of external DNS records in supported providers when the annotation`external-dns.alpha.kubernetes.io/hostname` is present. Like with internal DNS, duplicates must be avoided. This policy requires every such Service have a cluster-unique hostname present in the value of the annotation.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+            - Bash
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("external-dns.alpha.kubernetes.io/hostname")'
+          message: 'External DNS hostname annotations must be unique across Services — cross-resource uniqueness cannot be enforced in single-request CEL'
+          action: AUDIT
+        - expression: 'tool == "Bash" && request.args.command.contains("external-dns.alpha.kubernetes.io/hostname")'
+          message: 'kubectl annotate setting external-dns hostname — verify the hostname is unique across all Services (cross-resource uniqueness cannot be checked in CEL)'
+          action: AUDIT
+    defaultAction: ALLOW

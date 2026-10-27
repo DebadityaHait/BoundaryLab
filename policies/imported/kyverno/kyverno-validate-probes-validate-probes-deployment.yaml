@@ -1,0 +1,24 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-validate-probes-validate-probes-deployment
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: Sample
+spec:
+    description: Liveness and readiness probes accomplish different goals, and setting both to the same is an anti-pattern and often results in app problems in the future. This policy checks that liveness and readiness probes are not equal. Keep in mind that if both the probes are not set, they are considered to be equal and hence fails the check.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Deployment") && (!request.args.content.contains("livenessProbe:") || !request.args.content.contains("readinessProbe:"))'
+          message: 'Deployment containers must define both livenessProbe and readinessProbe'
+          action: REQUIRE_APPROVAL
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Deployment") && request.args.content.contains("livenessProbe:") && request.args.content.contains("readinessProbe:") && request.args.content.matches(".*livenessProbe:.*\\s+httpGet:.*readinessProbe:.*\\s+httpGet:.*")'
+          message: 'Deployment liveness and readiness probes both use httpGet — verify they are not identical (copy-paste anti-pattern)'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

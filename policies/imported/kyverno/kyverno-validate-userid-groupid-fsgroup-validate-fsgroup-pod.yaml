@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-validate-userid-groupid-fsgroup-validate-fsgroup-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Sample
+spec:
+    description: All processes inside a Pod can be made to run with specific user and groupID by setting `runAsUser` and `runAsGroup` respectively. `fsGroup` can be specified to make sure any file created in the volume will have the specified groupID. This policy validates that these fields are set to the defined values.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Pod") && (!request.args.content.contains("fsGroup:") || request.args.content.contains("fsGroup: 0"))'
+          message: 'Pods must set fsGroup to a non-zero value in securityContext'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

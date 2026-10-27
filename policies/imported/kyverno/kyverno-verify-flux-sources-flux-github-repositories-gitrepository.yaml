@@ -1,0 +1,24 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-verify-flux-sources-flux-github-repositories-gitrepository
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: Flux
+spec:
+    description: Flux source APIs include a number of different sources such as GitRepository, Bucket, HelmRepository, and ImageRepository resources. Each of these by default can be pointed to any location. In a production environment, it may be desired to restrict these to only known sources to prevent accessing outside sources. This policy verifies that each of the Flux sources comes from a trusted location.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: GitRepository") && !request.args.content.contains("verification:")'
+          message: 'Flux GitRepository source must enable signature verification'
+          action: REQUIRE_APPROVAL
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: GitRepository") && request.args.content.contains("url:") && !request.args.content.matches(".*url:\\s+https?://.*")'
+          message: 'Flux GitRepository url must use HTTPS or SSH (trusted-domain allowlist requires hardcoded domains and is not enforced here)'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

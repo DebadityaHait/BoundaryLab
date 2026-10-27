@@ -1,0 +1,21 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-topologyspreadconstraints-policy-spread-pods-statefulset
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: medium
+        kyverno.io/category: Sample
+spec:
+    description: Deployments to a Kubernetes cluster with multiple availability zones often need to distribute those replicas to align with those zones to ensure site-level failures do not impact availability. This policy ensures topologySpreadConstraints are defined, to spread pods over nodes and zones. Deployments or Statefulsets with leass than 3 replicas are skipped.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: StatefulSet") && !request.args.content.contains("topologySpreadConstraints:")'
+          message: 'StatefulSets must define topologySpreadConstraints (replica-count exclusion cannot be checked via CEL text-search)'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

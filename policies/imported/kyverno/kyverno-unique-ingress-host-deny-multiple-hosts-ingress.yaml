@@ -1,0 +1,20 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-unique-ingress-host-deny-multiple-hosts-ingress
+    annotations:
+
+        boundarylab.io/severity: medium
+        kyverno.io/category: Sample
+spec:
+    description: 'An Ingress host is a URL at which services may be made available externally. In most cases, these hosts should be unique across the cluster to ensure no routing conflicts occur. This policy checks an incoming Ingress resource to ensure its hosts are unique to the cluster. It also ensures that only a single host may be specified in a given manifest. '
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("kind: Ingress") && request.args.content.matches("[\\s\\S]*rules:[\\s\\S]*-\\s*host:[\\s\\S]*-\\s*host:[\\s\\S]*")'
+          message: 'Ingress resources must not define multiple hosts in a single manifest'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW
