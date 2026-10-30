@@ -1,0 +1,24 @@
+# imported from: gatekeeper-library
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: gatekeeper-k8scontainerratios
+    annotations:
+
+        boundarylab.io/original-kind: K8sContainerRatios
+        boundarylab.io/severity: high
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source: open-policy-agent/gatekeeper-library
+spec:
+    description: |-
+        Sets a maximum ratio for container resource limits to requests.
+        https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("containers:") && request.args.content.contains("limits:") && request.args.content.contains("requests:")'
+          message: 'Container resource limit-to-request ratios should stay within configured bounds to ensure predictable scheduling behavior.'
+          action: AUDIT
+    defaultAction: ALLOW

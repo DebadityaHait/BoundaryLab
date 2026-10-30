@@ -1,0 +1,19 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-verify-image-with-multi-keys-check-image-with-two-keys-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: low
+        kyverno.io/category: Software Supply Chain Security
+spec:
+    description: There may be multiple keys used to sign images based on the parties involved in the creation process. This image verification policy requires the named image be signed by two separate keys. It will search for a global "production" key in a ConfigMap called `keys` in the `default` Namespace and also a Namespace key in the same ConfigMap.
+    matchConstraints:
+        tools: []
+    validations:
+        - expression: 'false'
+          message: 'Multi-key cosign signature verification requires cryptographic registry API calls for two separate keys — cannot verify from manifest content alone; verify images are dual-signed by both required keys via CI/CD pipeline'
+          action: AUDIT
+    defaultAction: ALLOW

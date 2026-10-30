@@ -1,0 +1,19 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-verify-manifest-integrity-verify-deployment-allow-replicas-deployment
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: low
+        kyverno.io/category: Other
+spec:
+    description: Verifying the integrity of resources is important to ensure no tampering has occurred, and in some cases this may need to be extended to certain YAML manifests deployed to Kubernetes. Starting in Kyverno 1.8, these manifests may be signed with Sigstore and the signature(s) validated to prevent this tampering while still allowing some exceptions on a per-field basis. This policy verifies Deployments are signed with the expected key but ignores the `spec.replicas` field allowing other teams to change just this value.
+    matchConstraints:
+        tools: []
+    validations:
+        - expression: 'false'
+          message: 'Sigstore manifest integrity verification requires cryptographic signature validation of the YAML file against a public key — cannot verify manifest signing from file content alone; verify manifests are signed via Sigstore before deployment'
+          action: AUDIT
+    defaultAction: ALLOW

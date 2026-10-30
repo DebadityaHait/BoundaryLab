@@ -1,0 +1,19 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-verify-sbom-cyclonedx-check-sbom-pod
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: low
+        kyverno.io/category: Software Supply Chain Security
+spec:
+    description: Software Bill of Materials (SBOM) provide details on the composition of a given container image and may be represented in a couple different standards. Having an SBOM can be important to ensuring images are built using verified processes. This policy verifies that an image has an SBOM in CycloneDX format and was signed by the expected subject and issuer when produced through GitHub Actions and using Cosign's keyless signing. It requires configuration based upon your own values.
+    matchConstraints:
+        tools: []
+    validations:
+        - expression: 'false'
+          message: 'CycloneDX SBOM verification via cosign keyless signing requires OCI registry attestation lookup and cryptographic verification — cannot check SBOM existence or signature from manifest content alone; verify SBOM attestations are published for all images'
+          action: AUDIT
+    defaultAction: ALLOW

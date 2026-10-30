@@ -1,0 +1,19 @@
+# imported from: policies
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: kyverno-verify-tekton-taskrun-vuln-scan-check-signature-tekton-dev-v1beta1-taskrun-status
+    annotations:
+
+        boundarylab.io/severity: medium
+        boundarylab.io/llm-confidence: low
+        kyverno.io/category: Tekton
+spec:
+    description: A signed bundle is required and a vulnerability scan made by Grype must return no vulnerabilities greater than 8.0.
+    matchConstraints:
+        tools: []
+    validations:
+        - expression: 'false'
+          message: 'Tekton TaskRun bundle signature verification with Grype vulnerability scan requires cosign bundle verification and external vulnerability scan result — cannot verify from manifest content alone; verify TaskRun bundles are signed and scanned via Tekton Chains'
+          action: AUDIT
+    defaultAction: ALLOW

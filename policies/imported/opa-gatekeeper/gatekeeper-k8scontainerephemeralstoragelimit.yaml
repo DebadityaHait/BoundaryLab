@@ -1,0 +1,24 @@
+# imported from: gatekeeper-library
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: gatekeeper-k8scontainerephemeralstoragelimit
+    annotations:
+
+        boundarylab.io/original-kind: K8sContainerEphemeralStorageLimit
+        boundarylab.io/severity: high
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source: open-policy-agent/gatekeeper-library
+spec:
+    description: |-
+        Requires containers to have an ephemeral storage limit set and constrains the limit to be within the specified maximum values.
+        https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("containers:") && !request.args.content.contains("ephemeral-storage:")'
+          message: 'Containers should define ephemeral storage limits to prevent local storage exhaustion on nodes.'
+          action: AUDIT
+    defaultAction: ALLOW

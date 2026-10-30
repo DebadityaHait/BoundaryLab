@@ -1,0 +1,25 @@
+# imported from: gatekeeper-library
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: gatekeeper-k8sblocknodeport
+    annotations:
+
+        boundarylab.io/original-kind: K8sBlockNodePort
+        boundarylab.io/severity: high
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source: open-policy-agent/gatekeeper-library
+spec:
+    description: |-
+        Disallows all Services with type NodePort.
+        https://kubernetes.io/docs/concepts/services-networking/service/#nodeport
+    matchConstraints:
+        tools:
+            - Bash
+            - Write
+            - Edit
+    validations:
+        - expression: '((tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("NodePort")) || (tool == "Bash" && request.args.command.matches(".*kubectl.*(create|apply|expose).*") && request.args.command.contains("NodePort"))'
+          message: 'Services of type NodePort are not permitted. NodePort exposes services directly on host ports, bypassing ingress controls.'
+          action: DENY
+    defaultAction: ALLOW
