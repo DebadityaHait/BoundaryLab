@@ -1,0 +1,22 @@
+# imported from: gatekeeper-library
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: gatekeeper-k8spspallowedusers
+    annotations:
+
+        boundarylab.io/original-kind: K8sPSPAllowedUsers
+        boundarylab.io/severity: high
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source: open-policy-agent/gatekeeper-library
+spec:
+    description: Controls the user and group IDs of the container and some volumes. Corresponds to the `runAsUser`, `runAsGroup`, `supplementalGroups`, and `fsGroup` fields in a PodSecurityPolicy. For more information, see https://kubernetes.io/docs/concepts/policy/pod-security-policy/#users-and-groups
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && (request.args.content.contains("runAsUser: 0") || request.args.content.contains("runAsGroup: 0"))'
+          message: 'Containers must not run as UID 0 (root) or GID 0. Set runAsUser and runAsGroup to non-zero values in the security context.'
+          action: DENY
+    defaultAction: ALLOW

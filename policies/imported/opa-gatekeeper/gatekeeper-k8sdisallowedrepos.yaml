@@ -1,0 +1,22 @@
+# imported from: gatekeeper-library
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: gatekeeper-k8sdisallowedrepos
+    annotations:
+
+        boundarylab.io/original-kind: K8sDisallowedRepos
+        boundarylab.io/severity: high
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source: open-policy-agent/gatekeeper-library
+spec:
+    description: Disallowed container repositories that begin with a string from the specified list.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.matches(".*image:\\s+docker\\.io/.*")'
+          message: 'Container image is from a disallowed registry (docker.io). Use images from approved registries only.'
+          action: DENY
+    defaultAction: ALLOW

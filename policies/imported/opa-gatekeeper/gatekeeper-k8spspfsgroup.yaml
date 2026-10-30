@@ -1,0 +1,22 @@
+# imported from: gatekeeper-library
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: gatekeeper-k8spspfsgroup
+    annotations:
+
+        boundarylab.io/original-kind: K8sPSPFSGroup
+        boundarylab.io/severity: high
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source: open-policy-agent/gatekeeper-library
+spec:
+    description: Controls allocating an FSGroup that owns the Pod's volumes. Corresponds to the `fsGroup` field in a PodSecurityPolicy. For more information, see https://kubernetes.io/docs/concepts/policy/pod-security-policy/#volumes-and-file-systems
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("fsGroup: 0")'
+          message: 'Pods must not set fsGroup: 0 (root group). Volume ownership by root group grants excessive filesystem access.'
+          action: DENY
+    defaultAction: ALLOW

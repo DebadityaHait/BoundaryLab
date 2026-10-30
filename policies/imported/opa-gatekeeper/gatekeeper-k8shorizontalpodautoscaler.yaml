@@ -1,0 +1,22 @@
+# imported from: gatekeeper-library
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: gatekeeper-k8shorizontalpodautoscaler
+    annotations:
+
+        boundarylab.io/original-kind: K8sHorizontalPodAutoscaler
+        boundarylab.io/severity: high
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source: open-policy-agent/gatekeeper-library
+spec:
+    description: Disallow the following scenarios when deploying `HorizontalPodAutoscalers` 1. Deployment of HorizontalPodAutoscalers with `.spec.minReplicas` or `.spec.maxReplicas` outside the ranges defined in the constraint 2. Deployment of HorizontalPodAutoscalers where the difference between `.spec.minReplicas` and `.spec.maxReplicas` is less than the configured `minimumReplicaSpread` 3. Deployment of HorizontalPodAutoscalers that do not reference a valid `scaleTargetRef` (e.g. Deployment, ReplicationController, ReplicaSet, StatefulSet).
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("HorizontalPodAutoscaler")'
+          message: 'HorizontalPodAutoscaler minReplicas and maxReplicas should be within configured ranges, and the scaleTargetRef must reference a valid workload resource.'
+          action: AUDIT
+    defaultAction: ALLOW

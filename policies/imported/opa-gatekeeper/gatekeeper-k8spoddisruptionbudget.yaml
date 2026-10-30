@@ -1,0 +1,24 @@
+# imported from: gatekeeper-library
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: gatekeeper-k8spoddisruptionbudget
+    annotations:
+
+        boundarylab.io/original-kind: K8sPodDisruptionBudget
+        boundarylab.io/severity: high
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source: open-policy-agent/gatekeeper-library
+spec:
+    description: |-
+        Disallow the following scenarios when deploying PodDisruptionBudgets or resources that implement the replica subresource (e.g. Deployment, ReplicationController, ReplicaSet, StatefulSet): 1. Deployment of PodDisruptionBudgets with .spec.maxUnavailable == 0 2. Deployment of PodDisruptionBudgets with .spec.minAvailable == .spec.replicas of the resource with replica subresource This will prevent PodDisruptionBudgets from blocking voluntary disruptions such as node draining.
+        https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("PodDisruptionBudget") && request.args.content.contains("maxUnavailable: 0")'
+          message: 'PodDisruptionBudgets must not set maxUnavailable: 0 or minAvailable equal to replica count. Such configurations block voluntary node draining and cluster maintenance operations.'
+          action: REQUIRE_APPROVAL
+    defaultAction: ALLOW

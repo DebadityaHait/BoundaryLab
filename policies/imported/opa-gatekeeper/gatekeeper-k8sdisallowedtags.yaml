@@ -1,0 +1,24 @@
+# imported from: gatekeeper-library
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: gatekeeper-k8sdisallowedtags
+    annotations:
+
+        boundarylab.io/original-kind: K8sDisallowedTags
+        boundarylab.io/severity: high
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source: open-policy-agent/gatekeeper-library
+spec:
+    description: |-
+        Requires container images to have an image tag different from the ones in the specified list.
+        https://kubernetes.io/docs/concepts/containers/images/#image-names
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.matches(".*image:.*:latest.*")'
+          message: "Container images must not use disallowed tags such as 'latest'. Pin images to a specific digest or version tag."
+          action: DENY
+    defaultAction: ALLOW

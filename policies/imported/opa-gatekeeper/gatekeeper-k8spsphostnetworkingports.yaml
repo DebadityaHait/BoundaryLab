@@ -1,0 +1,23 @@
+# imported from: gatekeeper-library
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: gatekeeper-k8spsphostnetworkingports
+    annotations:
+
+        boundarylab.io/original-kind: K8sPSPHostNetworkingPorts
+        boundarylab.io/severity: high
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source: open-policy-agent/gatekeeper-library
+spec:
+    description: Controls usage of host network namespace by pod containers. HostNetwork verification happens without exception for exemptImages. Specific ports must be specified. Corresponds to the `hostNetwork` and `hostPorts` fields in a PodSecurityPolicy. For more information, see https://kubernetes.io/docs/concepts/policy/pod-security-policy/#host-namespaces
+    matchConstraints:
+        tools:
+            - Bash
+            - Write
+            - Edit
+    validations:
+        - expression: '((tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("hostNetwork: true")) || (tool == "Bash" && request.args.command.contains("--host-network"))'
+          message: "Pods must not use the host network namespace. Host networking bypasses network isolation and exposes the node''s network stack."
+          action: DENY
+    defaultAction: ALLOW

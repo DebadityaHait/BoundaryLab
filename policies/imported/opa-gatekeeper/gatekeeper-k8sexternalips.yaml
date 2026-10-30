@@ -1,0 +1,24 @@
+# imported from: gatekeeper-library
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: gatekeeper-k8sexternalips
+    annotations:
+
+        boundarylab.io/original-kind: K8sExternalIPs
+        boundarylab.io/severity: high
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source: open-policy-agent/gatekeeper-library
+spec:
+    description: |-
+        Restricts Service externalIPs to an allowed list of IP addresses.
+        https://kubernetes.io/docs/concepts/services-networking/service/#external-ips
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("externalIPs:")'
+          message: 'Services must not specify externalIPs. External IPs bypass cluster network policies and can enable man-in-the-middle attacks.'
+          action: DENY
+    defaultAction: ALLOW
