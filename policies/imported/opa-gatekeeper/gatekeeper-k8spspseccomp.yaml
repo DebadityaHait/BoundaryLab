@@ -1,0 +1,22 @@
+# imported from: gatekeeper-library
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: gatekeeper-k8spspseccomp
+    annotations:
+
+        boundarylab.io/original-kind: K8sPSPSeccomp
+        boundarylab.io/severity: high
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source: open-policy-agent/gatekeeper-library
+spec:
+    description: Controls the seccomp profile used by containers. Corresponds to the `seccomp.security.alpha.kubernetes.io/allowedProfileNames` annotation on a PodSecurityPolicy. For more information, see https://kubernetes.io/docs/concepts/policy/pod-security-policy/#seccomp
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && (request.args.content.contains("kind: Pod") || request.args.content.contains("kind: Deployment") || request.args.content.contains("kind: DaemonSet")) && !request.args.content.contains("seccompProfile:") && !request.args.content.contains("seccomp.security.alpha.kubernetes.io/")'
+          message: 'Containers should define a seccomp profile to restrict the kernel system calls available to the container.'
+          action: AUDIT
+    defaultAction: ALLOW

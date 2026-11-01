@@ -1,0 +1,22 @@
+# imported from: gatekeeper-library
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: gatekeeper-k8srequiredannotations
+    annotations:
+
+        boundarylab.io/original-kind: K8sRequiredAnnotations
+        boundarylab.io/severity: high
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source: open-policy-agent/gatekeeper-library
+spec:
+    description: Requires resources to contain specified annotations, with values matching provided regular expressions.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && (request.args.content.contains("kind: Pod") || request.args.content.contains("kind: Deployment")) && !request.args.content.contains("annotations:")'
+          message: 'Resources should include required annotations (e.g. team, contact, cost-center) with values matching the expected pattern.'
+          action: AUDIT
+    defaultAction: ALLOW

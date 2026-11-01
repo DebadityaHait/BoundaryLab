@@ -1,0 +1,22 @@
+# imported from: gatekeeper-library
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: gatekeeper-k8spspseccompv2
+    annotations:
+
+        boundarylab.io/original-kind: K8sPSPSeccompV2
+        boundarylab.io/severity: high
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source: open-policy-agent/gatekeeper-library
+spec:
+    description: Controls the seccomp profile used by containers. Corresponds to the `securityContext.seccompProfile` field. Security contexts from the annotation is not considered as Kubernetes no longer reads security contexts from the annotation.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && (request.args.content.contains("kind: Pod") || request.args.content.contains("kind: Deployment")) && !request.args.content.contains("seccompProfile:") && !request.args.content.contains("type: RuntimeDefault")'
+          message: 'Containers should define a seccomp profile via securityContext.seccompProfile. The annotation-based approach is no longer read by Kubernetes.'
+          action: AUDIT
+    defaultAction: ALLOW

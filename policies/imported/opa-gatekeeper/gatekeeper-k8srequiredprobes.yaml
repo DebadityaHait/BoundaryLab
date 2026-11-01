@@ -1,0 +1,22 @@
+# imported from: gatekeeper-library
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: gatekeeper-k8srequiredprobes
+    annotations:
+
+        boundarylab.io/original-kind: K8sRequiredProbes
+        boundarylab.io/severity: high
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source: open-policy-agent/gatekeeper-library
+spec:
+    description: Requires Pods to have readiness and/or liveness probes.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && request.args.content.contains("containers:") && (!request.args.content.contains("livenessProbe:") || !request.args.content.contains("readinessProbe:"))'
+          message: 'Pods should define readiness and liveness probes so Kubernetes can accurately manage pod lifecycle and traffic routing.'
+          action: AUDIT
+    defaultAction: ALLOW

@@ -1,0 +1,22 @@
+# imported from: gatekeeper-library
+apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+    name: gatekeeper-k8srequiredlabels
+    annotations:
+
+        boundarylab.io/original-kind: K8sRequiredLabels
+        boundarylab.io/severity: high
+        boundarylab.io/llm-confidence: medium
+        boundarylab.io/source: open-policy-agent/gatekeeper-library
+spec:
+    description: Requires resources to contain specified labels, with values matching provided regular expressions.
+    matchConstraints:
+        tools:
+            - Write
+            - Edit
+    validations:
+        - expression: '(tool == "Write" || tool == "Edit") && request.args.path.matches(".*\\.(yaml|yml|json)$") && (request.args.content.contains("kind: Pod") || request.args.content.contains("kind: Deployment") || request.args.content.contains("kind: Service")) && !request.args.content.contains("labels:")'
+          message: 'Resources should include required labels (e.g. app, environment, owner) with values matching the expected pattern.'
+          action: AUDIT
+    defaultAction: ALLOW
