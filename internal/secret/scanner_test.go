@@ -3,6 +3,7 @@ package secret
 import (
 	"context"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -150,4 +151,20 @@ func TestSecret_NoFindings_CleanContent(t *testing.T) {
 	if !isZeroLabel(label) {
 		t.Errorf("expected zero label for clean content, got %+v", label)
 	}
+}
+
+func TestConcurrentScannerInitialization(t *testing.T) {
+	var wg sync.WaitGroup
+	for range 8 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			scanner := NewScanner()
+			findings, label := scanner.ScanBoundary(context.Background(), "ordinary text", policy.BoundaryToolArgs)
+			if len(findings) > 0 || label != (boundarylab.SecurityLabel{}) {
+				t.Errorf("clean content rejected: findings=%v label=%+v", findings, label)
+			}
+		}()
+	}
+	wg.Wait()
 }

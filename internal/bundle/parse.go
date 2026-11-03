@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -51,7 +50,7 @@ type paramDefinition struct {
 
 // ParsePolicyFile parses a single YAML policy file and returns a PolicyTemplate and PolicyBinding.
 // The CEL expression is the first validation expression (for MVP-1 simplicity).
-// Returns (nil, nil, nil) if the file is not a PolicyTemplate.
+// Returns an error for unsupported or malformed policy documents.
 // For multi-document YAML files (separated by ---), only the first document is returned.
 // Use ParsePolicyDir to load all documents from a directory.
 func ParsePolicyFile(path string) (*policy_types.PolicyTemplate, *policy_types.PolicyBinding, error) {
@@ -68,7 +67,7 @@ func ParsePolicyFile(path string) (*policy_types.PolicyTemplate, *policy_types.P
 // ParsePolicyFileAll parses all YAML documents in a single file.
 // Files with multiple --- separated documents (e.g. semantic-categories.yaml) produce
 // one template+binding per document. Single-document files return a slice of length 1.
-// Returns (nil, nil, nil) if the file contains no PolicyTemplate documents.
+// Returns an error for unsupported or malformed policy documents.
 func ParsePolicyFileAll(path string) ([]policy_types.PolicyTemplate, []policy_types.PolicyBinding, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -89,13 +88,28 @@ func ParsePolicyFileAll(path string) ([]policy_types.PolicyTemplate, []policy_ty
 		}
 
 		if manifest.Kind != "PolicyTemplate" || manifest.APIVersion != "boundarylab.io/v1" {
-			continue
+			return nil, nil, fmt.Errorf("bundle: %s: unsupported policy kind or apiVersion", path)
 		}
 
+		for _, validation := range manifest.Spec.Validations {
+			if validation.Action != "" && validation.Action != "DENY" && validation.Action != "REQUIRE_APPROVAL" && validation.Action != "AUDIT" {
+				return nil, nil, fmt.Errorf("bundle: %s: policy %q has unsupported action %q", path, manifest.Metadata.Name, validation.Action)
+			}
+			if strings.TrimSpace(validation.Expression) == "" {
+				return nil, nil, fmt.Errorf("bundle: %s: policy %q has an empty validation expression", path, manifest.Metadata.Name)
+			}
+			message := strings.ToLower(validation.Message)
+			if validation.Action == "AUDIT" && (strings.Contains(message, "manual review required") || strings.Contains(message, "cannot mutate") || strings.Contains(message, "cannot generate")) {
+				return nil, nil, fmt.Errorf("bundle: %s: audit-only policy %q has an incomplete translation", path, manifest.Metadata.Name)
+			}
+		}
+
+		if strings.TrimSpace(manifest.Metadata.Name) == "" {
+			return nil, nil, fmt.Errorf("bundle: %s: policy name is required", path)
+		}
 		expr, requireApproval := buildCombinedExpression(&manifest)
 		if expr == "" {
-			log.Printf("bundle: %s: PolicyTemplate %q has no evaluable validations — skipping", path, manifest.Metadata.Name)
-			continue
+			return nil, nil, fmt.Errorf("bundle: %s: PolicyTemplate %q has no evaluable validations", path, manifest.Metadata.Name)
 		}
 
 		var message string
@@ -201,7 +215,7 @@ func resolveParams(defs map[string]paramDefinition, sourceFile string) (map[stri
 // Key behaviors:
 //   - Variables are inlined using multiple passes to handle nested references (e.g., isProtected → branchName).
 //   - All DENY validations are combined with OR: !(expr1 || expr2 || ...).
-//   - If no DENY validations exist, REQUIRE_APPROVAL validations are collected next.
+//   - Mixed DENY and REQUIRE_APPROVAL conditions are all enforced as DENY.
 //   - If neither exists, falls back to the first non-empty validation.
 func buildCombinedExpression(m *policyManifest) (string, bool) {
 	// Build variable substitution map: name → normalized expression.
@@ -228,31 +242,22 @@ func buildCombinedExpression(m *policyManifest) (string, bool) {
 		return expr
 	}
 
-	// Collect all DENY validations and combine with OR.
-	var denyExprs []string
+	// DENY takes precedence for mixed-action policies; include approval conditions
+	// so they cannot be silently ignored. Mixed matches are denied conservatively.
+	var denyExprs, approvalExprs []string
 	for _, v := range m.Spec.Validations {
-		if v.Action == "DENY" && v.Expression != "" {
+		switch v.Action {
+		case "DENY":
 			denyExprs = append(denyExprs, inline(v.Expression))
+		case "REQUIRE_APPROVAL":
+			approvalExprs = append(approvalExprs, inline(v.Expression))
 		}
 	}
-
 	if len(denyExprs) > 0 {
-		// Combined expression: deny if ANY of the deny conditions is true.
-		// The expression evaluates to true (allow) when none of the conditions match.
-		// !(cond1 || cond2 || cond3) == allow when all conditions are false.
-		return "!(" + strings.Join(denyExprs, " || ") + ")", false
+		return "!(" + strings.Join(append(denyExprs, approvalExprs...), " || ") + ")", false
 	}
-
-	// Collect REQUIRE_APPROVAL validations.
-	var reqApprovalExprs []string
-	for _, v := range m.Spec.Validations {
-		if v.Action == "REQUIRE_APPROVAL" && v.Expression != "" {
-			reqApprovalExprs = append(reqApprovalExprs, inline(v.Expression))
-		}
-	}
-
-	if len(reqApprovalExprs) > 0 {
-		return "!(" + strings.Join(reqApprovalExprs, " || ") + ")", true
+	if len(approvalExprs) > 0 {
+		return "!(" + strings.Join(approvalExprs, " || ") + ")", true
 	}
 
 	// Fallback: use first non-empty validation expression regardless of action.
@@ -333,12 +338,11 @@ func normalizeExpression(expr string) string {
 }
 
 // ParsePolicyDir parses all YAML files in a directory tree and returns templates and bindings.
-// It recursively walks subdirectories to find all policy files. Files that fail to parse are
-// skipped with a warning (logged to stderr) rather than failing the entire load.
+// It recursively walks subdirectories and rejects malformed or unsupported policy files.
 func ParsePolicyDir(dir string) ([]policy_types.PolicyTemplate, []policy_types.PolicyBinding, error) {
 	var templates []policy_types.PolicyTemplate
 	var bindings []policy_types.PolicyBinding
-	var skipped int
+	seen := make(map[string]struct{})
 
 	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -355,21 +359,24 @@ func ParsePolicyDir(dir string) ([]policy_types.PolicyTemplate, []policy_types.P
 
 		fileTmpl, fileBind, parseErr := ParsePolicyFileAll(path)
 		if parseErr != nil {
-			log.Printf("bundle: skipping %s: %v", path, parseErr)
-			skipped++
-			return nil
+			return fmt.Errorf("bundle: %s: %w", path, parseErr)
+		}
+		if len(fileTmpl) == 0 {
+			return fmt.Errorf("bundle: %s: no policy templates", path)
 		}
 
+		for _, template := range fileTmpl {
+			if _, exists := seen[template.ID]; exists {
+				return fmt.Errorf("bundle: duplicate policy ID %q in %s", template.ID, path)
+			}
+			seen[template.ID] = struct{}{}
+		}
 		templates = append(templates, fileTmpl...)
 		bindings = append(bindings, fileBind...)
 		return nil
 	})
 	if err != nil {
 		return nil, nil, err
-	}
-
-	if skipped > 0 {
-		log.Printf("bundle: %d policy file(s) skipped due to parse errors (see above)", skipped)
 	}
 
 	return templates, bindings, nil

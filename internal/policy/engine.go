@@ -5,8 +5,8 @@
 //  1. Adapter layer:    classify.Classify() → VerdictEntry
 //  2. IFC layer:        ifc.Dominates() → deny if session cannot access resource
 //  3. CEL layer:        evaluate matching PolicyBindings → first DENY wins
-//  4. Secret scan:      secretScanner.ScanBoundary() (MVP-1 stub)
-//  5. Delegation:       delegationValidator.Validate() (MVP-1 stub)
+//  4. Secret scan:      secretScanner.ScanBoundary()
+//  5. Delegation:       delegationValidator.Validate()
 //
 // Hot path contract: Evaluate() loads the snapshot exactly ONCE at entry. The same
 // pointer is passed through the entire call stack. No mid-evaluation reload.
@@ -15,7 +15,7 @@
 //   - Zero-value Action is ActionDeny (fail-secure).
 //   - atomic.Pointer.Store() appears ONCE — in applySnapshot().
 //   - reloadMu is never held during Evaluate().
-//   - Failed reload never replaces the snapshot.
+//   - Failed reload invalidates the snapshot and denies requests.
 package policy
 
 import (
@@ -38,6 +38,7 @@ import (
 	"boundarylab.local/boundarylab/internal/ifc"
 	"boundarylab.local/boundarylab/internal/label"
 	"boundarylab.local/boundarylab/internal/sink"
+	"boundarylab.local/boundarylab/pkg/adapters"
 	"boundarylab.local/boundarylab/pkg/boundarylab"
 	policy_types "boundarylab.local/boundarylab/pkg/policy/types"
 )
@@ -62,14 +63,14 @@ type Finding struct {
 }
 
 // SecretScanner is the interface for secret detection.
-// MVP-1 uses a stub implementation that always returns no findings.
+// Unconfigured scanning denies requests rather than silently allowing them.
 type SecretScanner interface {
 	ScanBoundary(ctx context.Context, content string, boundary BoundaryType) ([]Finding, boundarylab.SecurityLabel)
 	ShouldScan(effects []string, boundary BoundaryType) bool
 }
 
 // DelegationValidator is the interface for delegation chain validation.
-// MVP-1 uses a stub implementation that always succeeds.
+// Unconfigured delegation validation rejects non-empty chains.
 type DelegationValidator interface {
 	Validate(chain []boundarylab.DelegationRef, now time.Time) error
 }
@@ -194,8 +195,8 @@ func NewPolicyEngine(
 	e := &PolicyEngine{
 		sessions:            sessions,
 		celEnv:              celEnv,
-		secretScanner:       &noopSecretScanner{},
-		delegationValidator: &noopDelegationValidator{},
+		secretScanner:       &unavailableSecretScanner{},
+		delegationValidator: &unavailableDelegationValidator{},
 		activationBuilder:   cel.NewActivationBuilder(),
 		selfProtect:         NewSelfProtectGuard(),
 	}
@@ -260,8 +261,11 @@ func (e *PolicyEngine) evaluateWithSnapshot(
 		}
 	}()
 
-	if req.SpawnToken != "" {
-		e.validateAndPropagateTaint(req.SessionID, req.SpawnToken)
+	if req.ParentSessionID != "" && req.SpawnToken == "" {
+		return denyResponse("child session requires a spawn token", boundarylab.EnforcingLayerDelegation, startNs)
+	}
+	if req.SpawnToken != "" && !e.validateAndPropagateTaint(req.SessionID, req.SpawnToken) {
+		return denyResponse("invalid, expired, or reused spawn token", boundarylab.EnforcingLayerDelegation, startNs)
 	}
 
 	if req.ProjectRoot != "" && e.sessions != nil {
@@ -304,27 +308,15 @@ func (e *PolicyEngine) evaluateWithSnapshot(
 	}
 
 	var decodedArgs map[string]any
-	if len(req.Args) > 0 {
-		if err := json.Unmarshal(req.Args, &decodedArgs); err != nil {
-			decodedArgs = nil
-		}
+	if len(req.Args) == 0 || json.Unmarshal(req.Args, &decodedArgs) != nil || decodedArgs == nil {
+		return denyResponse("invalid or missing tool arguments", boundarylab.EnforcingLayerArgSchema, startNs)
 	}
-
-	// Only runs when args were actually decoded (non-nil map). If the hook sends no
-	// args at all, decodedArgs is nil and we skip validation rather than requiring
-	// required fields to be present in a missing payload.
 	schemaResult := classify.CheckArgSchema(req.Tool, decodedArgs)
-	if decodedArgs != nil && schemaResult.Err != nil {
-		return boundarylab.CheckResponse{
-			Decision: boundarylab.Decision{
-				Action:   boundarylab.ActionDeny,
-				Reason:   schemaResult.Err.Error(),
-				PolicyID: "builtin:arg-schema",
-			},
-			LatencyNs:      time.Now().UnixNano() - startNs,
-			EnforcingLayer: boundarylab.EnforcingLayerArgSchema,
-			ThreatSeverity: "medium",
-		}
+	if schemaResult.UnknownTool {
+		return denyResponse("no argument schema registered for tool: "+req.Tool, boundarylab.EnforcingLayerArgSchema, startNs)
+	}
+	if schemaResult.Err != nil {
+		return denyResponse(schemaResult.Err.Error(), boundarylab.EnforcingLayerArgSchema, startNs)
 	}
 
 	var labeled label.LabeledRequest
@@ -420,17 +412,16 @@ func (e *PolicyEngine) evaluateWithSnapshot(
 
 		prog, ok := snap.programs.Get(cb.binding.TemplateID)
 		if !ok {
-			continue
+			return denyResponse("policy program unavailable: "+cb.binding.TemplateID, boundarylab.EnforcingLayerCEL, startNs)
 		}
 
 		policyParams := snap.templateParams[cb.binding.TemplateID]
 		val, err := e.activationBuilder.Evaluate(ctx, prog, req, verdict, decodedArgs, labeled, policyParams, sessionProjectRoot)
-		if err != nil {
-			if cb.binding.DefaultAction == "DENY" {
-				return denyResponse("policy eval error — fail-secure: "+cb.binding.TemplateID, boundarylab.EnforcingLayerCEL, startNs)
-			}
-			log.Printf("WARN: policy %s eval error (skipping): %v", cb.binding.TemplateID, err)
-			continue
+		if err != nil || val == nil {
+			return denyResponse("policy evaluation failed: "+cb.binding.TemplateID, boundarylab.EnforcingLayerCEL, startNs)
+		}
+		if _, ok := val.Value().(bool); !ok {
+			return denyResponse("policy returned a non-boolean result: "+cb.binding.TemplateID, boundarylab.EnforcingLayerCEL, startNs)
 		}
 
 		if b, ok := val.Value().(bool); ok && !b {
@@ -477,6 +468,9 @@ func (e *PolicyEngine) evaluateWithSnapshot(
 				}
 
 				findings, elevatedLabel := e.secretScanner.ScanBoundary(ctx, scanContent, BoundaryToolArgs)
+				if len(findings) == 0 && elevatedLabel != (boundarylab.SecurityLabel{}) {
+					return denyResponse("secret scan failed or timed out", boundarylab.EnforcingLayerSecretScan, startNs)
+				}
 				if len(findings) > 0 {
 					if e.sessions != nil {
 						e.sessions.TaintWithSecret(req.SessionID)
@@ -549,7 +543,7 @@ func (e *PolicyEngine) evaluateWithSnapshot(
 // Reload atomically swaps the EngineSnapshot.
 // This is the ONLY method that calls atomic.Pointer.Store() — via applySnapshot().
 // reloadMu serializes concurrent Reload() calls but is never held during Evaluate().
-// If any step fails, the existing snapshot continues serving.
+// If a reload fails, the engine denies requests until a valid snapshot is loaded.
 func (e *PolicyEngine) Reload(ctx context.Context, bundle *boundarylab.CompiledBundle) error {
 	e.reloadMu.Lock()
 	defer e.reloadMu.Unlock()
@@ -567,6 +561,7 @@ func (e *PolicyEngine) Reload(ctx context.Context, bundle *boundarylab.CompiledB
 
 	newSnap, skipped, err := builder(ctx, bundle, nextVersion)
 	if err != nil {
+		e.applySnapshot(nil)
 		return err
 	}
 
@@ -575,7 +570,14 @@ func (e *PolicyEngine) Reload(ctx context.Context, bundle *boundarylab.CompiledB
 	return nil
 }
 
-// SkippedPolicies lists policy IDs skipped in the most recent Reload due to undeclared CEL variables or functions.
+// Invalidate denies new requests until the policy set is successfully reloaded.
+func (e *PolicyEngine) Invalidate() {
+	e.reloadMu.Lock()
+	defer e.reloadMu.Unlock()
+	e.applySnapshot(nil)
+}
+
+// SkippedPolicies remains available for compatibility; failed policies prevent activation.
 func (e *PolicyEngine) SkippedPolicies() []string {
 	return e.lastSkipped
 }
@@ -590,17 +592,22 @@ func (e *PolicyEngine) buildSnapshot(
 	bundle *boundarylab.CompiledBundle,
 	version uint64,
 ) (*engineSnapshot, []string, error) {
+	if bundle == nil || len(bundle.Templates) == 0 || len(bundle.Bindings) == 0 {
+		return nil, nil, fmt.Errorf("bundle: cannot activate an empty policy set")
+	}
+	catalog, err := adapters.Catalog()
+	if err != nil {
+		return nil, nil, fmt.Errorf("load tool classifier: %w", err)
+	}
 	programs, skippedPolicies, err := cel.CompileAll(e.celEnv, bundle.Templates)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Fail-closed: refuse to activate when a defaultAction=DENY policy fails compilation.
-	// Prevents an adversary from injecting a syntax error to silently disable a DENY policy.
-	for _, s := range skippedPolicies {
-		if s.DefaultAction == "DENY" {
-			return nil, nil, fmt.Errorf("bundle: cannot load: policy %q has defaultAction=DENY but CEL compilation failed: %v", s.TemplateID, s.CompileErr)
-		}
+	// Never activate a snapshot that silently omits a policy.
+	if len(skippedPolicies) > 0 {
+		s := skippedPolicies[0]
+		return nil, nil, fmt.Errorf("bundle: cannot load: policy %q CEL compilation failed: %v", s.TemplateID, s.CompileErr)
 	}
 
 	skipped := make([]string, 0, len(skippedPolicies))
@@ -641,6 +648,7 @@ func (e *PolicyEngine) buildSnapshot(
 		},
 		bindings:       compiled,
 		programs:       programs,
+		classifier:     classify.NewClassifier(catalog),
 		bindingIdx:     idx,
 		compiledAt:     time.Now().UnixNano(),
 		sourceHash:     bundle.Hash,
@@ -697,42 +705,37 @@ func (e *PolicyEngine) ListPolicies() []boundarylab.PolicySummary {
 }
 
 func (s *engineSnapshot) matchBindings(tool, session string) []*compiledBinding {
-	if s.bindingIdx.byTool == nil {
-		return filterByScope(s.bindingIdx.all, tool, session)
-	}
-
-	matches := s.bindingIdx.byTool[tool]
-	if len(matches) == 0 {
-		return filterByScope(s.bindingIdx.all, tool, session)
-	}
-	return filterByScope(matches, tool, session)
+	return filterByScope(s.bindingIdx.all, tool, session)
 }
 
 func filterByScope(bindings []*compiledBinding, tool, session string) []*compiledBinding {
-	if len(bindings) == 0 {
-		return bindings
-	}
-	// Fast path: if first binding has empty scope, assume all do (common case).
-	if bindings[0].scope.tool == "" && bindings[0].scope.session == "" {
-		return bindings
-	}
 	result := make([]*compiledBinding, 0, len(bindings))
 	for _, b := range bindings {
-		if matchesScope(b.scope, tool, session) {
-			result = append(result, b)
+		scope := b.binding.Scope
+		if len(scope.Tools) > 0 && !containsString(scope.Tools, tool) {
+			continue
 		}
+		if len(scope.Sessions) > 0 && !containsString(scope.Sessions, session) {
+			continue
+		}
+		if len(scope.Tools) == 0 && b.scope.tool != "" && b.scope.tool != tool {
+			continue
+		}
+		if len(scope.Sessions) == 0 && b.scope.session != "" && b.scope.session != session {
+			continue
+		}
+		result = append(result, b)
 	}
 	return result
 }
 
-func matchesScope(scope scopeKey, tool, session string) bool {
-	if scope.tool != "" && scope.tool != tool {
-		return false
+func containsString(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
 	}
-	if scope.session != "" && scope.session != session {
-		return false
-	}
-	return true
+	return false
 }
 
 func denyResponse(reason string, layer boundarylab.EnforcingLayer, startNs int64) boundarylab.CheckResponse {
@@ -824,24 +827,24 @@ func extractCommandText(args json.RawMessage) (string, bool) {
 	return s, ok
 }
 
-// WARNING: The following implementations are MVP stubs — they always return success.
-// Secret scanning and delegation validation are NOT active in this build.
-// See: https://boundarylab.local/boundarylab/issues (track implementation progress)
-// Do NOT deploy in environments where these checks are expected to be enforced.
+// Unconfigured security components fail closed.
 
-type noopSecretScanner struct{}
+type unavailableSecretScanner struct{}
 
-func (n *noopSecretScanner) ScanBoundary(_ context.Context, _ string, _ BoundaryType) ([]Finding, boundarylab.SecurityLabel) {
-	return nil, boundarylab.SecurityLabel{}
+func (n *unavailableSecretScanner) ScanBoundary(_ context.Context, _ string, _ BoundaryType) ([]Finding, boundarylab.SecurityLabel) {
+	return nil, boundarylab.SecurityLabel{Confidentiality: 3}
 }
 
-func (n *noopSecretScanner) ShouldScan(_ []string, _ BoundaryType) bool {
-	return false
+func (n *unavailableSecretScanner) ShouldScan(_ []string, _ BoundaryType) bool {
+	return true
 }
 
-type noopDelegationValidator struct{}
+type unavailableDelegationValidator struct{}
 
-func (n *noopDelegationValidator) Validate(_ []boundarylab.DelegationRef, _ time.Time) error {
+func (n *unavailableDelegationValidator) Validate(chain []boundarylab.DelegationRef, _ time.Time) error {
+	if len(chain) > 0 {
+		return fmt.Errorf("delegation validation is not configured")
+	}
 	return nil
 }
 
@@ -918,27 +921,27 @@ func (e *PolicyEngine) storeSpawnToken(token string, spawn pendingSpawn) {
 }
 
 // Tokens are one-time use — deleted upon consumption.
-func (e *PolicyEngine) validateAndPropagateTaint(childID, token string) {
+func (e *PolicyEngine) validateAndPropagateTaint(childID, token string) bool {
 	val, ok := e.pendingSpawns.LoadAndDelete(token)
 	if !ok {
-		// Token not found or already consumed — child starts as root session
-		return
+		return false
 	}
 
 	spawn := val.(pendingSpawn)
 
 	// Check TTL
 	if time.Now().UnixNano()-spawn.created > int64(spawnTokenTTL) {
-		// Token expired — child starts as root session
-		return
+		return false
 	}
 
 	parentID := spawn.parentSessionID
 
 	// Propagate taint from parent to child
-	if e.sessions != nil {
-		e.propagateParentState(childID, parentID)
+	if e.sessions == nil || childID == "" {
+		return false
 	}
+	e.propagateParentState(childID, parentID)
+	return true
 }
 
 func (e *PolicyEngine) propagateParentState(childID, parentID string) {

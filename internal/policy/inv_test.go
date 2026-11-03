@@ -54,7 +54,7 @@ func TestINV_006_ReloadMuNotHeldDuringEvaluate(t *testing.T) {
 	}
 	engine := NewPolicyEngine(sessions, celEnv)
 
-	bundle := &boundarylab.CompiledBundle{Version: 1}
+	bundle := testValidBundle(1)
 	if err := engine.Reload(context.Background(), bundle); err != nil {
 		t.Fatalf("initial Reload: %v", err)
 	}
@@ -115,9 +115,9 @@ func TestINV_006_ReloadMuNotHeldDuringEvaluate(t *testing.T) {
 	wg.Wait()
 }
 
-// TestINV_007_FailedReloadKeepsOldSnapshot delegates to the existing test.
-func TestINV_007_FailedReloadKeepsOldSnapshot(t *testing.T) {
-	TestPolicyEngine_Reload_FailedReloadKeepsOld(t)
+// TestINV_007_FailedReloadDeniesRequests delegates to the existing test.
+func TestINV_007_FailedReloadDeniesRequests(t *testing.T) {
+	TestPolicyEngine_Reload_FailedReloadDenies(t)
 }
 
 // TestINV_008_ProgramCacheIsValueType delegates to the existing test.
@@ -183,7 +183,7 @@ func TestEngineSnapshot_Copy_IsIndependent(t *testing.T) {
 	}
 	engine := NewPolicyEngine(sessions, celEnv)
 
-	bundle1 := &boundarylab.CompiledBundle{Version: 1}
+	bundle1 := testValidBundle(1)
 	if err := engine.Reload(context.Background(), bundle1); err != nil {
 		t.Fatalf("first Reload: %v", err)
 	}
@@ -193,7 +193,7 @@ func TestEngineSnapshot_Copy_IsIndependent(t *testing.T) {
 	}
 	ptr1 := snap1
 
-	bundle2 := &boundarylab.CompiledBundle{Version: 2}
+	bundle2 := testValidBundle(2)
 	if err := engine.Reload(context.Background(), bundle2); err != nil {
 		t.Fatalf("second Reload: %v", err)
 	}
@@ -220,7 +220,7 @@ func TestEngineSnapshot_Copy_IsIndependent(t *testing.T) {
 		t.Errorf("snap2.Version: got %d, want 2", snap2.public.Version)
 	}
 
-	// A failed third reload must not replace snap2.
+	// A failed third reload must invalidate the active snapshot.
 	buildErr := errors.New("intentional failure")
 	engine.buildSnapshotFunc = func(_ context.Context, _ *boundarylab.CompiledBundle, _ uint64) (*engineSnapshot, []string, error) {
 		return nil, nil, buildErr
@@ -229,7 +229,7 @@ func TestEngineSnapshot_Copy_IsIndependent(t *testing.T) {
 		t.Fatal("expected error from injected failure")
 	}
 	snap3 := engine.snapshot.Load()
-	if snap3 != snap2 {
-		t.Error("INV-007+INV-008: failed Reload replaced the snapshot pointer")
+	if snap3 != nil {
+		t.Error("failed Reload must invalidate the active snapshot")
 	}
 }

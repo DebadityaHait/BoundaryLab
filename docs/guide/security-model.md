@@ -303,11 +303,13 @@ BoundaryLab raises the bar significantly but should be combined with network seg
 
 ## Hardening Suggestions
 
+Requests with missing or malformed arguments, unknown tool schemas, or failed policy evaluations are denied. Register a schema for custom and MCP tools before using them. A failed policy reload blocks requests until a valid policy set is loaded.
+
 For environments with elevated security requirements:
 
-1. **Run daemon under a process supervisor** — systemd (Linux) or launchd (macOS) ensures restart on crash. Service files are in `deploy/`. Without this, a crashed daemon means fail-open.
+1. **Run daemon under a process supervisor** — systemd (Linux) or launchd (macOS) ensures restart on crash. Service files are in `deploy/`. If the daemon is unavailable, the hook denies requests.
 
-2. **Monitor the fail-open log** — `tail -f ~/.boundarylab/failopen.log` shows every request that was allowed because the daemon was unreachable. Alert on this in production.
+2. **Monitor the fail-closed log** — `tail -f ~/.boundarylab/failclosed.log` shows hook failures that caused requests to be denied when logging was available.
 
 3. **Enable OpenTelemetry** — Set `BOUNDARYLAB_OTEL_ENDPOINT=localhost:4317` to export structured traces and metrics for every evaluation decision. Integrates with Jaeger, Grafana Tempo, Honeycomb.
 
@@ -317,4 +319,4 @@ For environments with elevated security requirements:
 
 6. **Restrict socket permissions** — The Unix socket at `/tmp/boundarylab.sock` is readable/writable by the creating user. Ensure the daemon and hook run as the same user. For multi-user systems, consider placing the socket in a user-specific runtime directory (`$XDG_RUNTIME_DIR/boundarylab/`).
 
-> **On fail-closed mode:** BoundaryLab currently fails open by design — a crashed daemon doesn't block developer workflows. If you need fail-closed (block everything when daemon is unreachable), modify the hook's `allowWithWarning` path to exit 2 instead of 0. This is a one-line change but carries the risk of blocking all development if the daemon crashes.
+> BoundaryLab denies requests when evaluation cannot be completed. Restore the daemon or repair the policy bundle before retrying.

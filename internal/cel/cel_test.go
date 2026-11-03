@@ -6,13 +6,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/google/cel-go/common/types"
 	"boundarylab.local/boundarylab/internal/cel"
 	"boundarylab.local/boundarylab/internal/classify"
 	"boundarylab.local/boundarylab/internal/ifc"
 	"boundarylab.local/boundarylab/internal/label"
 	boundarylab "boundarylab.local/boundarylab/pkg/boundarylab"
 	policy_types "boundarylab.local/boundarylab/pkg/policy/types"
+	"github.com/google/cel-go/common/types"
 )
 
 // helpers
@@ -877,34 +877,13 @@ func TestCEL_SourceLocationThreaded(t *testing.T) {
 	}
 }
 
-// --- TestCompileAll_SkippedPoliciesReported ---
-
-// TestCompileAll_SkippedPoliciesReported verifies that CompileAll returns the
-// policy ID in the skipped list when the expression references an undeclared
-// variable, and that this is not treated as an error.
-func TestCompileAll_SkippedPoliciesReported(t *testing.T) {
+// A type-check error must not activate a partial policy set.
+func TestCompileAll_RejectsUndeclaredPolicy(t *testing.T) {
 	env := mustNewEnv(t)
-
-	templates := []policy_types.PolicyTemplate{
-		{ID: "valid-policy", Expression: `tool == "Bash"`},
-		// __phantom__ is not declared in the CEL environment.
-		{ID: "undeclared-var", Expression: `__phantom__ == "foo"`},
-	}
-
-	cache, skipped, err := cel.CompileAll(env, templates)
-	if err != nil {
-		t.Fatalf("CompileAll returned unexpected error: %v", err)
-	}
-
-	if len(skipped) != 1 || skipped[0].TemplateID != "undeclared-var" {
-		t.Errorf("expected skipped=[{undeclared-var}], got %v", skipped)
-	}
-
-	if _, ok := cache.Get("valid-policy"); !ok {
-		t.Error("valid-policy should be in cache")
-	}
-	if _, ok := cache.Get("undeclared-var"); ok {
-		t.Error("undeclared-var should NOT be in cache — it was skipped")
+	templates := []policy_types.PolicyTemplate{{ID: "valid-policy", Expression: `tool == "Bash"`}, {ID: "undeclared-var", Expression: `__phantom__ == "foo"`}}
+	cache, _, err := cel.CompileAll(env, templates)
+	if err == nil || cache != nil {
+		t.Fatalf("expected compilation failure and no cache, got cache=%v err=%v", cache, err)
 	}
 }
 

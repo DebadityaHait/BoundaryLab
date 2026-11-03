@@ -33,8 +33,8 @@ type Config struct {
 	SocketPath  string
 	PolicyDir   string
 	AuditDBPath string
-	// FailOpenLog defaults to ~/.boundarylab/failopen.log (or $BOUNDARYLAB_FAILOPEN_LOG).
-	FailOpenLog string
+	// FailClosedLog defaults to ~/.boundarylab/failclosed.log (or $BOUNDARYLAB_FAILCLOSED_LOG).
+	FailClosedLog string
 	// HealthzAddr is the address for the /healthz HTTP endpoint. Defaults to "127.0.0.1:9091".
 	HealthzAddr string
 }
@@ -51,16 +51,16 @@ func defaultSocketPath() string {
 	return "/tmp/boundarylab.sock"
 }
 
-// defaultFailOpenLog returns the default fail-open log path.
-func defaultFailOpenLog() string {
-	if v := os.Getenv("BOUNDARYLAB_FAILOPEN_LOG"); v != "" {
+// defaultFailClosedLog returns the default fail-closed log path.
+func defaultFailClosedLog() string {
+	if v := os.Getenv("BOUNDARYLAB_FAILCLOSED_LOG"); v != "" {
 		return v
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return "/tmp/boundarylab-failopen.log"
+		return "/tmp/boundarylab-failclosed.log"
 	}
-	return filepath.Join(home, ".boundarylab", "failopen.log")
+	return filepath.Join(home, ".boundarylab", "failclosed.log")
 }
 
 // applyDefaults fills in zero-value Config fields.
@@ -68,8 +68,8 @@ func (c *Config) applyDefaults() {
 	if c.SocketPath == "" {
 		c.SocketPath = defaultSocketPath()
 	}
-	if c.FailOpenLog == "" {
-		c.FailOpenLog = defaultFailOpenLog()
+	if c.FailClosedLog == "" {
+		c.FailClosedLog = defaultFailClosedLog()
 	}
 	if c.HealthzAddr == "" {
 		c.HealthzAddr = "127.0.0.1:9091"

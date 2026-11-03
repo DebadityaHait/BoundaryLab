@@ -85,13 +85,14 @@ func (s *Scanner) init() {
 			s.detector = s.testDetector
 			return
 		}
-		viper.SetConfigType("toml")
-		if err := viper.ReadConfig(strings.NewReader(config.DefaultConfig)); err != nil {
+		configReader := viper.New()
+		configReader.SetConfigType("toml")
+		if err := configReader.ReadConfig(strings.NewReader(config.DefaultConfig)); err != nil {
 			log.Printf("boundarylab/secret: gitleaks config read failed — scanner disabled")
 			return
 		}
 		var vc config.ViperConfig
-		if err := viper.Unmarshal(&vc); err != nil {
+		if err := configReader.Unmarshal(&vc); err != nil {
 			log.Printf("boundarylab/secret: gitleaks config unmarshal failed — scanner disabled")
 			return
 		}
@@ -140,7 +141,7 @@ func (s *Scanner) ScanBoundary(ctx context.Context, content string, boundary pol
 	s.init()
 
 	if s.detector == nil {
-		return nil, boundarylab.SecurityLabel{}
+		return nil, denyLabel()
 	}
 
 	// Check context before scanning.

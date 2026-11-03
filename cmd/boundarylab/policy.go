@@ -8,9 +8,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/google/cel-go/checker"
 	"boundarylab.local/boundarylab/internal/bundle"
 	"boundarylab.local/boundarylab/internal/cel"
+	"github.com/google/cel-go/checker"
 	"github.com/spf13/cobra"
 )
 
@@ -102,6 +102,10 @@ func runPolicyLint(cmd *cobra.Command, args []string) error {
 	templates, _, err := bundle.ParsePolicyDir(dir)
 	if err != nil {
 		return fmt.Errorf("parse error: %w", err)
+	}
+
+	if len(templates) == 0 {
+		return fmt.Errorf("no policies found in %s", dir)
 	}
 
 	env, err := cel.NewCELEnvironment()

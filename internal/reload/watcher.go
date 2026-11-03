@@ -5,12 +5,13 @@ import (
 	"context"
 	"io/fs"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"sync/atomic"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
 	"boundarylab.local/boundarylab/internal/otel"
+	"github.com/fsnotify/fsnotify"
 	"go.opentelemetry.io/otel/attribute"
 	otelmetric "go.opentelemetry.io/otel/metric"
 )
@@ -51,17 +52,33 @@ func New(policyDir string, engine PolicyReloader) (*ReloadWatcher, error) {
 
 // Start begins watching and blocks until ctx is cancelled.
 // Must be called AFTER initial policy load.
+func (r *ReloadWatcher) invalidate() {
+	if target, ok := r.engine.(interface{ Invalidate() }); ok {
+		target.Invalidate()
+	}
+}
+
 func (r *ReloadWatcher) Start(ctx context.Context) error {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
+		r.invalidate()
 		return err
 	}
+	watchedDirs := make(map[string]bool)
 	if err := filepath.WalkDir(r.policyDir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil || !d.IsDir() {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
 			return nil
 		}
-		return watcher.Add(path)
+		if err := watcher.Add(path); err != nil {
+			return err
+		}
+		watchedDirs[filepath.Clean(path)] = true
+		return nil
 	}); err != nil {
+		r.invalidate()
 		if cerr := watcher.Close(); cerr != nil {
 			slog.Error("fsnotify watcher close error", "err", cerr)
 		}
@@ -83,14 +100,41 @@ func (r *ReloadWatcher) Start(ctx context.Context) error {
 			return ctx.Err()
 		case event, ok := <-watcher.Events:
 			if !ok {
+				r.invalidate()
 				return nil
 			}
-			if !isYAMLFile(event.Name) {
+			isDirectory := watchedDirs[filepath.Clean(event.Name)]
+			if isDirectory && event.Op&(fsnotify.Remove|fsnotify.Rename) != 0 {
+				delete(watchedDirs, filepath.Clean(event.Name))
+			}
+			if event.Op&fsnotify.Create != 0 {
+				if info, statErr := os.Stat(event.Name); statErr == nil && info.IsDir() {
+					isDirectory = true
+					if walkErr := filepath.WalkDir(event.Name, func(path string, entry fs.DirEntry, err error) error {
+						if err != nil {
+							return err
+						}
+						if entry.IsDir() {
+							if err := watcher.Add(path); err != nil {
+								return err
+							}
+							watchedDirs[filepath.Clean(path)] = true
+						}
+						return nil
+					}); walkErr != nil {
+						r.invalidate()
+						slog.Error("cannot watch new policy directory", "err", walkErr)
+						continue
+					}
+				}
+			}
+			if !isDirectory && !isYAMLFile(event.Name) {
 				continue
 			}
-			if event.Op&(fsnotify.Create|fsnotify.Write|fsnotify.Remove) == 0 {
+			if event.Op&(fsnotify.Create|fsnotify.Write|fsnotify.Remove|fsnotify.Rename) == 0 {
 				continue
 			}
+			r.invalidate()
 			if debounceTimer != nil {
 				debounceTimer.Stop()
 			}
@@ -99,7 +143,7 @@ func (r *ReloadWatcher) Start(ctx context.Context) error {
 					reloadErrorTotal.Add(1)
 					otel.InstrumentPolicyReload().Add(context.Background(), 1,
 						otelmetric.WithAttributes(attribute.String("status", "error")))
-					slog.Error("policy reload failed; retaining last-known-good snapshot", "err", err)
+					slog.Error("policy reload failed; requests are denied until recovery", "err", err)
 				} else {
 					reloadSuccessTotal.Add(1)
 					otel.InstrumentPolicyReload().Add(context.Background(), 1,
@@ -109,9 +153,11 @@ func (r *ReloadWatcher) Start(ctx context.Context) error {
 			})
 		case err, ok := <-watcher.Errors:
 			if !ok {
+				r.invalidate()
 				return nil
 			}
-			slog.Error("fsnotify watcher error", "err", err)
+			r.invalidate()
+			slog.Error("fsnotify watcher error; requests are denied", "err", err)
 		}
 	}
 }

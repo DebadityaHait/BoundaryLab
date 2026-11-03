@@ -34,10 +34,10 @@ type Daemon struct {
 	engine       boundarylab.Engine
 	auditWriter  *audit.Writer
 	listener     net.Listener
-	streamSrv    boundarylab.StreamTap    // nil disables streaming
-	sessions     *ifc.SessionLabels // nil disables session label persistence
-	delegAPI     *DelegationAPI     // nil disables delegation HTTP endpoints
-	taintHistory *ifc.TaintHistory  // nil disables taint history pruning
+	streamSrv    boundarylab.StreamTap // nil disables streaming
+	sessions     *ifc.SessionLabels    // nil disables session label persistence
+	delegAPI     *DelegationAPI        // nil disables delegation HTTP endpoints
+	taintHistory *ifc.TaintHistory     // nil disables taint history pruning
 
 	reloader reload.PolicyReloader // nil until SetReloader is called
 
@@ -115,9 +115,9 @@ func (d *Daemon) Evaluations() int64 {
 func (d *Daemon) Run(ctx context.Context) error {
 	d.startTime = time.Now()
 
-	if err := d.reconcileFailOpenLog(); err != nil {
+	if err := d.reconcileFailClosedLog(); err != nil {
 		// Non-fatal: log but continue.
-		fmt.Fprintf(os.Stderr, "boundarylab-daemon: fail-open log reconciliation error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "boundarylab-daemon: fail-closed log reconciliation error: %v\n", err)
 	}
 
 	if err := d.listen(); err != nil {
@@ -407,10 +407,10 @@ func (d *Daemon) runHealthChecks() []Check {
 	return checks
 }
 
-// reconcileFailOpenLog reads the fail-open log from the last daemon run and
+// reconcileFailClosedLog reads the fail-closed log from the last daemon run and
 // emits a warning for each entry.
-func (d *Daemon) reconcileFailOpenLog() error {
-	f, err := os.Open(d.cfg.FailOpenLog)
+func (d *Daemon) reconcileFailClosedLog() error {
+	f, err := os.Open(d.cfg.FailClosedLog)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -426,13 +426,13 @@ func (d *Daemon) reconcileFailOpenLog() error {
 		if len(line) == 0 {
 			continue
 		}
-		var entry failOpenEntry
+		var entry failClosedEntry
 		if jsonErr := json.Unmarshal(line, &entry); jsonErr != nil {
 			count++
 			continue
 		}
 		fmt.Fprintf(os.Stderr,
-			"boundarylab-daemon: WARN fail-open entry reconciled: session=%s tool=%s reason=%s ts=%s\n",
+			"boundarylab-daemon: WARN fail-closed entry reconciled: session=%s tool=%s reason=%s ts=%s\n",
 			entry.SessionID, entry.Tool, entry.Reason, entry.Ts.Format(time.RFC3339),
 		)
 		count++
@@ -440,7 +440,7 @@ func (d *Daemon) reconcileFailOpenLog() error {
 
 	if count > 0 {
 		fmt.Fprintf(os.Stderr,
-			"boundarylab-daemon: WARN boundarylab_failopen_total=%d — governance was bypassed during daemon downtime\n",
+			"boundarylab-daemon: WARN boundarylab_failclosed_total=%d — hook failures caused blocked requests\n",
 			count,
 		)
 	}
@@ -448,8 +448,8 @@ func (d *Daemon) reconcileFailOpenLog() error {
 	return sc.Err()
 }
 
-// failOpenEntry mirrors the hook binary's FailOpenEntry for log parsing.
-type failOpenEntry struct {
+// failClosedEntry mirrors the hook binary's FailClosedEntry for log parsing.
+type failClosedEntry struct {
 	Ts               time.Time `json:"ts"`
 	SessionID        string    `json:"session_id"`
 	Tool             string    `json:"tool"`

@@ -74,25 +74,25 @@ func (a *CursorAdapter) FormatOutput(resp boundarylab.CheckResponse, _ json.RawM
 	}
 
 	exitCode := 0
-	if resp.Decision.Action == boundarylab.ActionDeny || resp.Decision.Action == boundarylab.ActionRequireApproval {
+	if out.Decision.Action == "deny" || out.Decision.Action == "require_approval" {
 		exitCode = 2
 	}
 
 	b, err := json.Marshal(out)
 	if err != nil {
-		return []byte(`{"decision":{"action":"allow"}}` + "\n"), 0
+		return []byte(`{"decision":{"action":"deny"}}` + "\n"), 2
 	}
 	return append(b, '\n'), exitCode
 }
 
-func (a *CursorAdapter) FormatFailOpen(reason string, _ json.RawMessage) ([]byte, int) {
+func (a *CursorAdapter) FormatFailClosed(reason string, _ json.RawMessage) ([]byte, int) {
 	out := CursorHookOutput{}
-	out.Decision.Action = "allow"
-	out.Decision.Reason = fmt.Sprintf("fail-open: %s", reason)
+	out.Decision.Action = "deny"
+	out.Decision.Reason = fmt.Sprintf("fail-closed: %s", reason)
 
 	b, err := json.Marshal(out)
 	if err != nil {
-		return []byte(`{"decision":{"action":"allow"}}` + "\n"), 0
+		return []byte(`{"decision":{"action":"deny"}}` + "\n"), 2
 	}
-	return append(b, '\n'), 0
+	return append(b, '\n'), 2
 }

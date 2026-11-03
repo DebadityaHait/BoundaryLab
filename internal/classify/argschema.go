@@ -23,11 +23,11 @@ type ArgSchemaResult struct {
 	UnknownTool bool // true when no schema is registered for this tool
 }
 
-// Unknown tools pass with UnknownTool=true (fail-open for backward compat).
+// Unknown tools are reported to the policy engine, which denies them.
 func CheckArgSchema(tool string, args map[string]any) ArgSchemaResult {
 	schema, ok := toolSchemas[tool]
 	if !ok {
-		return ArgSchemaResult{UnknownTool: true}
+		return ArgSchemaResult{UnknownTool: true, Err: fmt.Errorf("no argument schema registered for tool: %s", tool)}
 	}
 	if err := schema.validate(args); err != nil {
 		return ArgSchemaResult{Err: err}

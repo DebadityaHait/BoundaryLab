@@ -60,8 +60,8 @@ func runDoctor(cmd *cobra.Command, _ []string) error {
 	// Check 6: Policies loaded
 	checks = append(checks, checkPoliciesLoaded())
 
-	// Check 7: Fail-open count
-	checks = append(checks, checkFailOpen(boundarylabDir))
+	// Check 7: Fail-closed count
+	checks = append(checks, checkFailClosed(boundarylabDir))
 
 	// Check 8: Heartbeat
 	checks = append(checks, checkHeartbeat())
@@ -224,14 +224,17 @@ func checkPoliciesLoaded() doctorCheck {
 	return doctorCheck{name: "Policies", status: "OK", detail: fmt.Sprintf("engine ok, %d evaluations served", health.Evaluations)}
 }
 
-func checkFailOpen(boundarylabDir string) doctorCheck {
-	logPath := filepath.Join(boundarylabDir, "failopen.log")
+func checkFailClosed(boundarylabDir string) doctorCheck {
+	logPath := os.Getenv("BOUNDARYLAB_FAILCLOSED_LOG")
+	if logPath == "" {
+		logPath = filepath.Join(boundarylabDir, "failclosed.log")
+	}
 	f, err := os.Open(logPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return doctorCheck{name: "Fail-open", status: "OK", detail: "no fail-open events (log not found)"}
+			return doctorCheck{name: "Fail-closed", status: "OK", detail: "no fail-closed events (log not found)"}
 		}
-		return doctorCheck{name: "Fail-open", status: "OK", detail: "cannot read failopen.log"}
+		return doctorCheck{name: "Fail-closed", status: "FAIL", detail: "cannot read failclosed.log", warning: true}
 	}
 	defer func() { _ = f.Close() }()
 
@@ -239,23 +242,24 @@ func checkFailOpen(boundarylabDir string) doctorCheck {
 	count := 0
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		line := scanner.Text()
-		// Each line starts with an RFC3339 timestamp
-		if len(line) >= 20 {
-			ts, err := time.Parse(time.RFC3339, line[:20])
-			if err == nil && ts.After(cutoff) {
-				count++
-			}
+		var entry struct {
+			Timestamp time.Time `json:"ts"`
+		}
+		if err := json.Unmarshal(scanner.Bytes(), &entry); err != nil {
+			return doctorCheck{name: "Fail-closed", status: "FAIL", detail: "invalid failclosed.log entry", warning: true}
+		}
+		if entry.Timestamp.After(cutoff) {
+			count++
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return doctorCheck{name: "Fail-open", status: "OK", detail: fmt.Sprintf("error reading failopen.log: %v", err)}
+		return doctorCheck{name: "Fail-closed", status: "FAIL", detail: fmt.Sprintf("error reading failclosed.log: %v", err), warning: true}
 	}
 
 	if count > 0 {
-		return doctorCheck{name: "Fail-open", status: "OK", detail: fmt.Sprintf("%d events in last 24h", count), warning: count > 10}
+		return doctorCheck{name: "Fail-closed", status: "OK", detail: fmt.Sprintf("%d events in last 24h", count), warning: count > 0}
 	}
-	return doctorCheck{name: "Fail-open", status: "OK", detail: "0 events in last 24h"}
+	return doctorCheck{name: "Fail-closed", status: "OK", detail: "0 events in last 24h"}
 }
 
 func checkHeartbeat() doctorCheck {

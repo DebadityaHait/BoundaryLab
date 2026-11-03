@@ -175,8 +175,8 @@ func TestMCP_ResponseScan_TaintsLabel(t *testing.T) {
 	resp := proxy.HandleRequest(context.Background(), toolCallRequest("read_file"))
 	proxy.Wait()
 
-	if resp.Error != nil {
-		t.Fatalf("unexpected error: %v", resp.Error)
+	if resp.Error == nil {
+		t.Fatal("secret-bearing response must be blocked")
 	}
 	if len(scanner.findings) == 0 {
 		t.Fatal("scanner must have returned findings for secret content")
@@ -256,7 +256,7 @@ func TestMCP_PassThrough_NonToolCall(t *testing.T) {
 func TestMCP_GovernancePipeline_Allow_Forwards(t *testing.T) {
 	expected := json.RawMessage(`{"exit":0}`)
 	upstream := &mockUpstream{callResult: expected}
-	proxy := mcp.NewInMemory(upstream, allowPipeline(), nil, "sess-3")
+	proxy := mcp.NewInMemory(upstream, allowPipeline(), &mockScanner{}, "sess-3")
 
 	resp := proxy.HandleRequest(context.Background(), toolCallRequest("bash"))
 	proxy.Wait()
@@ -354,5 +354,22 @@ func TestMCP_CircuitBreaker_RecoveryAfterSuccess(t *testing.T) {
 	cb.RecordFailure()
 	if !cb.Allow() {
 		t.Fatal("circuit must still be closed after success reset")
+	}
+}
+
+func TestMCP_UnknownMethodIsBlocked(t *testing.T) {
+	upstream := &mockUpstream{callResult: json.RawMessage(`"secret"`)}
+	proxy := mcp.NewInMemory(upstream, allowPipeline(), &mockScanner{}, "session")
+	resp := proxy.HandleRequest(context.Background(), mcp.JSONRPCRequest{JSONRPC: "2.0", Method: "resources/read", Params: json.RawMessage(`{}`)})
+	if resp.Error == nil || upstream.callCount != 0 {
+		t.Fatal("ungoverned method was forwarded")
+	}
+}
+func TestMCP_MissingScannerDoesNotForward(t *testing.T) {
+	upstream := &mockUpstream{callResult: json.RawMessage(`"ok"`)}
+	proxy := mcp.NewInMemory(upstream, allowPipeline(), nil, "session")
+	resp := proxy.HandleRequest(context.Background(), toolCallRequest("read"))
+	if resp.Error == nil || upstream.callCount != 0 {
+		t.Fatal("request was forwarded without a scanner")
 	}
 }

@@ -2175,3 +2175,16 @@ func TestImport_FalcoTagsToTools(t *testing.T) {
 }
 
 // ---- Checkov tests ----
+
+func TestImportRejectsIncompleteTranslations(t *testing.T) {
+	manifest := boundarylabManifest{Metadata: boundarylabMetadata{Name: "partial"}}
+	if err := ensureCompleteImport([]boundarylabManifest{manifest}, []string{"IMPORT_TODO: unsupported constraint"}); err == nil {
+		t.Fatal("incomplete translation accepted")
+	}
+	if err := ensureCompleteImport(nil, nil); err == nil {
+		t.Fatal("empty translation accepted")
+	}
+	if _, _, err := convertMCPVisor([]byte("max_rows: 5\n"), "fixture.yaml"); err == nil {
+		t.Fatal("unsupported row limit accepted")
+	}
+}

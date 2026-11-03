@@ -17,6 +17,10 @@ import (
 	policy_types "boundarylab.local/boundarylab/pkg/policy/types"
 )
 
+func testValidBundle(version uint64) *boundarylab.CompiledBundle {
+	return &boundarylab.CompiledBundle{Version: version, Templates: []policy_types.PolicyTemplate{{ID: "test-valid", Expression: "true"}}, Bindings: []policy_types.PolicyBinding{{TemplateID: "test-valid"}}}
+}
+
 func TestPolicyEngine_NilSnapshot_ReturnsDeny(t *testing.T) {
 	sessions := &ifc.SessionLabels{}
 	celEnv, err := cel.NewCELEnvironment()
@@ -59,9 +63,7 @@ func TestPolicyEngine_Reload_SingleWriter(t *testing.T) {
 	for i := 0; i < numGoroutines; i++ {
 		go func(n int) {
 			defer wg.Done()
-			bundle := &boundarylab.CompiledBundle{
-				Version: uint64(n),
-			}
+			bundle := testValidBundle(uint64(n))
 			err := engine.Reload(context.Background(), bundle)
 			if err != nil {
 				t.Errorf("reload failed: %v", err)
@@ -150,7 +152,7 @@ func TestPolicyEngine_Evaluate_Pipeline_IFCLayer(t *testing.T) {
 
 	catalog := []adapters.AdapterDef{
 		{
-			Tool:         "ReadTool",
+			Tool:         "Read",
 			Operation:    "read",
 			Family:       "test",
 			RiskLevel:    "low",
@@ -176,7 +178,8 @@ func TestPolicyEngine_Evaluate_Pipeline_IFCLayer(t *testing.T) {
 	})
 
 	req := boundarylab.CheckRequest{
-		Tool:      "ReadTool",
+		Tool:      "Read",
+		Args:      []byte(`{"file_path":"/tmp/example"}`),
 		SessionID: sessionID,
 		SecurityLabel: boundarylab.SecurityLabel{
 			Confidentiality: 50000,
@@ -288,7 +291,7 @@ func TestPolicyEngine_Evaluate_NoPolicies_ReturnsAllow(t *testing.T) {
 
 	catalog := []adapters.AdapterDef{
 		{
-			Tool:         "SafeTool",
+			Tool:         "Read",
 			Operation:    "read",
 			Family:       "test",
 			RiskLevel:    "low",
@@ -308,7 +311,8 @@ func TestPolicyEngine_Evaluate_NoPolicies_ReturnsAllow(t *testing.T) {
 	engine.applySnapshot(snap)
 
 	req := boundarylab.CheckRequest{
-		Tool:      "SafeTool",
+		Tool:      "Read",
+		Args:      []byte(`{"file_path":"/tmp/example"}`),
 		SessionID: "test-session",
 	}
 
@@ -406,7 +410,7 @@ func TestEvaluate_EnforcingLayer_Adapter(t *testing.T) {
 	}
 }
 
-func TestPolicyEngine_Reload_FailedReloadKeepsOld(t *testing.T) {
+func TestPolicyEngine_Reload_FailedReloadDenies(t *testing.T) {
 	sessions := &ifc.SessionLabels{}
 	celEnv, err := cel.NewCELEnvironment()
 	if err != nil {
@@ -415,9 +419,7 @@ func TestPolicyEngine_Reload_FailedReloadKeepsOld(t *testing.T) {
 
 	engine := NewPolicyEngine(sessions, celEnv)
 
-	firstBundle := &boundarylab.CompiledBundle{
-		Version: 1,
-	}
+	firstBundle := testValidBundle(1)
 	err = engine.Reload(context.Background(), firstBundle)
 	if err != nil {
 		t.Fatalf("first reload failed: %v", err)
@@ -427,7 +429,6 @@ func TestPolicyEngine_Reload_FailedReloadKeepsOld(t *testing.T) {
 	if snap1 == nil {
 		t.Fatal("expected snapshot after first reload")
 	}
-	version1 := snap1.public.Version
 
 	buildErr := errors.New("intentional build failure for test")
 	engine.buildSnapshotFunc = func(_ context.Context, _ *boundarylab.CompiledBundle, _ uint64) (*engineSnapshot, []string, error) {
@@ -445,12 +446,12 @@ func TestPolicyEngine_Reload_FailedReloadKeepsOld(t *testing.T) {
 		t.Errorf("expected build error, got %v", err)
 	}
 
-	snap2 := engine.snapshot.Load()
-	if snap2 == nil {
-		t.Fatal("expected snapshot to still exist after failed reload")
+	if engine.snapshot.Load() != nil {
+		t.Fatal("failed reload must invalidate the snapshot")
 	}
-	if snap2.public.Version != version1 {
-		t.Errorf("expected version to remain %d on failed reload, got %d", version1, snap2.public.Version)
+	resp := engine.Evaluate(context.Background(), boundarylab.CheckRequest{Tool: "Bash", Args: []byte(`{"command":"echo ok"}`)})
+	if resp.Decision.Action != boundarylab.ActionDeny {
+		t.Fatal("request allowed after failed reload")
 	}
 }
 
@@ -504,7 +505,7 @@ func TestPolicyEngine_Evaluate_AllowsValidRequest(t *testing.T) {
 
 	catalog := []adapters.AdapterDef{
 		{
-			Tool:         "ReadTool",
+			Tool:         "Read",
 			Operation:    "read",
 			Family:       "test",
 			RiskLevel:    "low",
@@ -530,7 +531,8 @@ func TestPolicyEngine_Evaluate_AllowsValidRequest(t *testing.T) {
 	})
 
 	req := boundarylab.CheckRequest{
-		Tool:      "ReadTool",
+		Tool:      "Read",
+		Args:      []byte(`{"file_path":"/tmp/example"}`),
 		SessionID: sessionID,
 		SecurityLabel: boundarylab.SecurityLabel{
 			Confidentiality: 1000,
@@ -556,7 +558,7 @@ func TestPolicyEngine_Evaluate_DelegationCeilingExceeded(t *testing.T) {
 
 	catalog := []adapters.AdapterDef{
 		{
-			Tool:         "ReadTool",
+			Tool:         "Read",
 			Operation:    "read",
 			Family:       "test",
 			RiskLevel:    "low",
@@ -588,7 +590,8 @@ func TestPolicyEngine_Evaluate_DelegationCeilingExceeded(t *testing.T) {
 	})
 
 	req := boundarylab.CheckRequest{
-		Tool:      "ReadTool",
+		Tool:      "Read",
+		Args:      []byte(`{"file_path":"/tmp/example"}`),
 		SessionID: childSessionID,
 		SecurityLabel: boundarylab.SecurityLabel{
 			Confidentiality: 1000,
@@ -660,7 +663,7 @@ func TestPolicyEngine_Evaluate_WithBashCommandText(t *testing.T) {
 		t.Fatalf("failed to create CEL environment: %v", err)
 	}
 
-	engine := NewPolicyEngine(sessions, celEnv)
+	engine := NewPolicyEngine(sessions, celEnv, WithSecretScanner(&missScanner{}))
 
 	catalog := []adapters.AdapterDef{
 		{
@@ -826,7 +829,7 @@ func TestPolicyEngine_ParamsFlowToCEL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewCELEnvironment: %v", err)
 	}
-	engine := NewPolicyEngine(sessions, celEnv)
+	engine := NewPolicyEngine(sessions, celEnv, WithSecretScanner(&missScanner{}))
 
 	// Expression mirrors dev-port-cleanup after variable inlining and wrapping by parse.go.
 	// The bundle parser wraps non-DENY validations with !(...): when the wrapped expression
@@ -940,5 +943,144 @@ func TestPolicyEngine_DevPortCleanup_NotSkipped(t *testing.T) {
 		if id == "dev-port-cleanup" {
 			t.Error("dev-port-cleanup was skipped — params variable not declared in CEL environment")
 		}
+	}
+}
+
+func TestPolicyEngine_RejectsEmptyBundle(t *testing.T) {
+	env, err := cel.NewCELEnvironment()
+	if err != nil {
+		t.Fatal(err)
+	}
+	engine := NewPolicyEngine(&ifc.SessionLabels{}, env)
+	if err := engine.Reload(context.Background(), &boundarylab.CompiledBundle{}); err == nil {
+		t.Fatal("empty policy set must not activate")
+	}
+	if got := engine.Evaluate(context.Background(), boundarylab.CheckRequest{Tool: "Bash", Args: []byte(`{"command":"echo ok"}`)}); got.Decision.Action != boundarylab.ActionDeny {
+		t.Fatalf("uninitialized engine allowed request: %+v", got)
+	}
+}
+
+func TestPolicyEngine_RejectsInvalidArgumentsAndUnknownTools(t *testing.T) {
+	env, err := cel.NewCELEnvironment()
+	if err != nil {
+		t.Fatal(err)
+	}
+	engine := NewPolicyEngine(&ifc.SessionLabels{}, env)
+	if err := engine.Reload(context.Background(), testValidBundle(1)); err != nil {
+		t.Fatal(err)
+	}
+	for _, req := range []boundarylab.CheckRequest{{Tool: "Bash"}, {Tool: "Bash", Args: []byte(`null`)}, {Tool: "Bash", Args: []byte(`{"command":42}`)}, {Tool: "UnknownTool", Args: []byte(`{}`)}} {
+		got := engine.Evaluate(context.Background(), req)
+		if got.Decision.Action != boundarylab.ActionDeny || got.EnforcingLayer != boundarylab.EnforcingLayerArgSchema {
+			t.Errorf("request %+v: expected argument schema denial, got %+v", req, got)
+		}
+	}
+}
+
+type failingScanner struct{}
+
+func (failingScanner) ShouldScan([]string, BoundaryType) bool { return true }
+func (failingScanner) ScanBoundary(context.Context, string, BoundaryType) ([]Finding, boundarylab.SecurityLabel) {
+	return nil, boundarylab.SecurityLabel{Confidentiality: 3}
+}
+
+func TestPolicyEngine_ScannerFailureDenies(t *testing.T) {
+	env, err := cel.NewCELEnvironment()
+	if err != nil {
+		t.Fatal(err)
+	}
+	engine := NewPolicyEngine(&ifc.SessionLabels{}, env, WithSecretScanner(failingScanner{}))
+	if err := engine.Reload(context.Background(), testValidBundle(1)); err != nil {
+		t.Fatal(err)
+	}
+	resp := engine.Evaluate(context.Background(), boundarylab.CheckRequest{Tool: "Bash", Args: []byte(`{"command":"echo ok"}`), SessionID: "scan-session"})
+	if resp.Decision.Action != boundarylab.ActionDeny || resp.EnforcingLayer != boundarylab.EnforcingLayerSecretScan {
+		t.Fatalf("expected scanner failure denial, got %+v", resp)
+	}
+}
+
+func TestPolicyEngine_GlobalPolicyCannotBeSkipped(t *testing.T) {
+	env, err := cel.NewCELEnvironment()
+	if err != nil {
+		t.Fatal(err)
+	}
+	engine := NewPolicyEngine(&ifc.SessionLabels{}, env)
+	b := &boundarylab.CompiledBundle{Templates: []policy_types.PolicyTemplate{{ID: "specific", Expression: "true"}, {ID: "global", Expression: "false"}}, Bindings: []policy_types.PolicyBinding{{TemplateID: "specific", Scope: policy_types.PolicyScope{Tools: []string{"Bash"}}}, {TemplateID: "global"}}}
+	if err := engine.Reload(context.Background(), b); err != nil {
+		t.Fatal(err)
+	}
+	resp := engine.Evaluate(context.Background(), boundarylab.CheckRequest{Tool: "Bash", Args: []byte(`{"command":"echo ok"}`), SessionID: "global-session"})
+	if resp.Decision.Action != boundarylab.ActionDeny || resp.Decision.PolicyID != "global" {
+		t.Fatalf("global policy was bypassed: %+v", resp)
+	}
+}
+
+func TestPolicyEngine_RejectsInvalidSpawnToken(t *testing.T) {
+	env, err := cel.NewCELEnvironment()
+	if err != nil {
+		t.Fatal(err)
+	}
+	engine := NewPolicyEngine(&ifc.SessionLabels{}, env)
+	if err := engine.Reload(context.Background(), testValidBundle(1)); err != nil {
+		t.Fatal(err)
+	}
+	req := boundarylab.CheckRequest{Tool: "Read", Args: []byte(`{"file_path":"/tmp/example"}`), SessionID: "child", SpawnToken: "invalid"}
+	resp := engine.Evaluate(context.Background(), req)
+	if resp.Decision.Action != boundarylab.ActionDeny || resp.EnforcingLayer != boundarylab.EnforcingLayerDelegation {
+		t.Fatalf("invalid token accepted: %+v", resp)
+	}
+}
+
+func TestPolicyEngine_UnconfiguredScannerDenies(t *testing.T) {
+	env, err := cel.NewCELEnvironment()
+	if err != nil {
+		t.Fatal(err)
+	}
+	engine := NewPolicyEngine(&ifc.SessionLabels{}, env)
+	if err := engine.Reload(context.Background(), testValidBundle(1)); err != nil {
+		t.Fatal(err)
+	}
+	resp := engine.Evaluate(context.Background(), boundarylab.CheckRequest{Tool: "Bash", Args: []byte(`{"command":"echo ok"}`), SessionID: "no-scanner"})
+	if resp.Decision.Action != boundarylab.ActionDeny || resp.EnforcingLayer != boundarylab.EnforcingLayerSecretScan {
+		t.Fatalf("unconfigured scanner allowed request: %+v", resp)
+	}
+}
+
+func TestPolicyEngine_MultiToolScope(t *testing.T) {
+	env, err := cel.NewCELEnvironment()
+	if err != nil {
+		t.Fatal(err)
+	}
+	engine := NewPolicyEngine(&ifc.SessionLabels{}, env, WithSecretScanner(&missScanner{}))
+	b := &boundarylab.CompiledBundle{Templates: []policy_types.PolicyTemplate{{ID: "limited", Expression: "false"}, {ID: "baseline", Expression: "true"}}, Bindings: []policy_types.PolicyBinding{{TemplateID: "limited", Scope: policy_types.PolicyScope{Tools: []string{"Read", "Write"}}}, {TemplateID: "baseline"}}}
+	if err := engine.Reload(context.Background(), b); err != nil {
+		t.Fatal(err)
+	}
+	read := engine.Evaluate(context.Background(), boundarylab.CheckRequest{Tool: "Read", Args: []byte(`{"file_path":"/tmp/example"}`), SessionID: "s"})
+	if read.Decision.Action != boundarylab.ActionDeny || read.Decision.PolicyID != "limited" {
+		t.Fatalf("scoped policy not enforced: %+v", read)
+	}
+	bash := engine.Evaluate(context.Background(), boundarylab.CheckRequest{Tool: "Bash", Args: []byte(`{"command":"echo ok"}`), SessionID: "s"})
+	if bash.Decision.Action != boundarylab.ActionAllow {
+		t.Fatalf("out-of-scope policy applied: %+v", bash)
+	}
+}
+
+func TestPolicyEngine_LoadedSnapshotHasClassifier(t *testing.T) {
+	env, err := cel.NewCELEnvironment()
+	if err != nil {
+		t.Fatal(err)
+	}
+	engine := NewPolicyEngine(&ifc.SessionLabels{}, env)
+	if err := engine.Reload(context.Background(), testValidBundle(1)); err != nil {
+		t.Fatal(err)
+	}
+	snapshot := engine.snapshot.Load()
+	if snapshot == nil || snapshot.classifier == nil {
+		t.Fatal("activated snapshot has no classifier")
+	}
+	verdict, found := snapshot.classifier.Classify("Write")
+	if !found || len(verdict.Effects) == 0 {
+		t.Fatalf("Write must have known effects: %+v", verdict)
 	}
 }

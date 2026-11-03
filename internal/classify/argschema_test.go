@@ -85,10 +85,10 @@ func TestCheckArgSchema_Edit_AllOptional_NoRequired(t *testing.T) {
 	}
 }
 
-func TestCheckArgSchema_UnknownTool_FailOpen(t *testing.T) {
+func TestCheckArgSchema_UnknownTool_FailClosed(t *testing.T) {
 	result := CheckArgSchema("MyCustomTool", map[string]any{})
-	if result.Err != nil {
-		t.Fatalf("expected no error for unknown tool (fail-open), got %v", result.Err)
+	if result.Err == nil {
+		t.Fatal("expected an error for an unregistered tool")
 	}
 	if !result.UnknownTool {
 		t.Error("UnknownTool should be true for unregistered tool")

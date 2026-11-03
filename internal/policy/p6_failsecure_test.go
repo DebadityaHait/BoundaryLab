@@ -73,18 +73,12 @@ func makeEngineWithDefaultAction(t *testing.T, templateID, expression, defaultAc
 // confidentiality / 0 deterministically fail without depending on external state.
 const runtimeErrorExpr = `confidentiality / 0 > 0`
 
-// TestEngine_P6_EvalError_AllowDefault_PolicySkipped verifies that when a policy has
-// defaultAction="" (not DENY) and the CEL program returns a runtime error, the request
-// continues (the policy is skipped, not fail-closed).
-func TestEngine_P6_EvalError_AllowDefault_PolicySkipped(t *testing.T) {
+// CEL evaluation errors must deny even when a policy defaults to ALLOW.
+func TestEngine_P6_EvalError_AllowDefault_FailsSecure(t *testing.T) {
 	engine := makeEngineWithDefaultAction(t, "allow-default-policy", runtimeErrorExpr, "ALLOW")
-
-	resp := engine.Evaluate(context.Background(), boundarylab.CheckRequest{Tool: "Bash", SessionID: "s1"})
-
-	// The erroring policy should be skipped. No other policy denies, so we expect Allow.
-	// If the decision IS deny, it must not have come from our policy (PolicyID check).
-	if resp.Decision.Action == boundarylab.ActionDeny && resp.Decision.PolicyID == "allow-default-policy" {
-		t.Errorf("defaultAction=ALLOW: policy should be skipped on eval error, not denied; got %+v", resp.Decision)
+	resp := engine.Evaluate(context.Background(), boundarylab.CheckRequest{Tool: "Bash", Args: []byte(`{"command":"echo ok"}`), SessionID: "s1"})
+	if resp.Decision.Action != boundarylab.ActionDeny || resp.EnforcingLayer != boundarylab.EnforcingLayerCEL {
+		t.Fatalf("expected CEL denial, got %+v", resp)
 	}
 }
 
@@ -94,7 +88,7 @@ func TestEngine_P6_EvalError_AllowDefault_PolicySkipped(t *testing.T) {
 func TestEngine_P6_EvalError_DenyDefault_FailsSecure(t *testing.T) {
 	engine := makeEngineWithDefaultAction(t, "deny-default-policy", runtimeErrorExpr, "DENY")
 
-	resp := engine.Evaluate(context.Background(), boundarylab.CheckRequest{Tool: "Bash", SessionID: "s1"})
+	resp := engine.Evaluate(context.Background(), boundarylab.CheckRequest{Tool: "Bash", Args: []byte(`{"command":"echo ok"}`), SessionID: "s1"})
 
 	if resp.Decision.Action != boundarylab.ActionDeny {
 		t.Errorf("defaultAction=DENY: expected ActionDeny on eval error, got %v", resp.Decision.Action)
@@ -138,7 +132,7 @@ func TestBundle_P6_CompileError_DenyDefault_RefusesLoad(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected Reload to return error for DENY policy with bad CEL, got nil")
 	}
-	if !strings.Contains(err.Error(), "cannot load") {
-		t.Errorf("error should contain 'cannot load', got: %v", err)
+	if !strings.Contains(err.Error(), "deny-with-bad-cel") {
+		t.Errorf("error should identify policy, got: %v", err)
 	}
 }

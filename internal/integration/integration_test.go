@@ -216,7 +216,7 @@ func TestIntegration_OTel_RecordEvaluation(t *testing.T) {
 		{"InstrumentAuditDropped", otel.InstrumentAuditDropped()},
 		{"InstrumentStreamClients", otel.InstrumentStreamClients()},
 		{"InstrumentStreamDropped", otel.InstrumentStreamDropped()},
-		{"InstrumentFailOpen", otel.InstrumentFailOpen()},
+		{"InstrumentFailClosed", otel.InstrumentFailClosed()},
 		{"InstrumentAuditBufferUtil", otel.InstrumentAuditBufferUtil()},
 		{"InstrumentGitleaksMemory", otel.InstrumentGitleaksMemory()},
 	} {

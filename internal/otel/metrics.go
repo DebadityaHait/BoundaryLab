@@ -16,7 +16,7 @@ var (
 	daemonConns       metric.Int64UpDownCounter
 	streamClients     metric.Int64UpDownCounter
 	streamDropped     metric.Int64Counter
-	failOpenTotal     metric.Int64Counter
+	failClosedTotal   metric.Int64Counter
 	gitleaksMemory    metric.Int64ObservableGauge
 )
 
@@ -81,9 +81,9 @@ func initMetrics() error {
 		return err
 	}
 
-	failOpenTotal, err = globalMeter.Int64Counter(
-		"boundarylab_failopen_total",
-		metric.WithDescription("Total fail-open events, labeled by reason"),
+	failClosedTotal, err = globalMeter.Int64Counter(
+		"boundarylab_failclosed_total",
+		metric.WithDescription("Total fail-closed events, labeled by reason"),
 	)
 	if err != nil {
 		return err
@@ -117,8 +117,8 @@ func InstrumentStreamClients() metric.Int64UpDownCounter { return streamClients 
 // InstrumentStreamDropped returns the stream dropped counter (noop when OTel disabled).
 func InstrumentStreamDropped() metric.Int64Counter { return streamDropped }
 
-// InstrumentFailOpen returns the fail-open counter (noop when OTel disabled).
-func InstrumentFailOpen() metric.Int64Counter { return failOpenTotal }
+// InstrumentFailClosed returns the fail-closed counter (noop when OTel disabled).
+func InstrumentFailClosed() metric.Int64Counter { return failClosedTotal }
 
 // InstrumentAuditBufferUtil returns the audit buffer gauge for callback registration.
 func InstrumentAuditBufferUtil() metric.Float64ObservableGauge { return auditBufferUtil }

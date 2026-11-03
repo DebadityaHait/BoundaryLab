@@ -18,8 +18,8 @@ type IDEAdapter interface {
 	ParseInput(raw json.RawMessage) (boundarylab.CheckRequest, error)
 	// FormatOutput converts a CheckResponse into IDE-specific stdout bytes and exit code.
 	FormatOutput(resp boundarylab.CheckResponse, rawInput json.RawMessage) (stdout []byte, exitCode int)
-	// FormatFailOpen produces fail-open output when the daemon is unreachable.
-	FormatFailOpen(reason string, rawInput json.RawMessage) (stdout []byte, exitCode int)
+	// FormatFailClosed produces fail-closed output when the daemon is unreachable.
+	FormatFailClosed(reason string, rawInput json.RawMessage) (stdout []byte, exitCode int)
 }
 
 // adapters is the ordered registry. First match wins.

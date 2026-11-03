@@ -76,12 +76,12 @@ func (a *ClaudeCodeAdapter) FormatOutput(resp boundarylab.CheckResponse, rawInpu
 	out := ClaudeCodeHookOutput{HookSpecificOutput: specific}
 	b, err := json.Marshal(out)
 	if err != nil {
-		return []byte(`{"hookSpecificOutput":{"permissionDecision":"allow"}}` + "\n"), 0
+		return []byte(`{"hookSpecificOutput":{"permissionDecision":"deny"}}` + "\n"), 0
 	}
 	return append(b, '\n'), 0
 }
 
-func (a *ClaudeCodeAdapter) FormatFailOpen(reason string, rawInput json.RawMessage) ([]byte, int) {
+func (a *ClaudeCodeAdapter) FormatFailClosed(reason string, rawInput json.RawMessage) ([]byte, int) {
 	var inp struct {
 		HookEventName string `json:"hook_event_name"`
 	}
@@ -90,13 +90,13 @@ func (a *ClaudeCodeAdapter) FormatFailOpen(reason string, rawInput json.RawMessa
 	out := ClaudeCodeHookOutput{
 		HookSpecificOutput: ClaudeCodeHookSpecific{
 			HookEventName:            inp.HookEventName,
-			PermissionDecision:       "allow",
-			PermissionDecisionReason: fmt.Sprintf("fail-open: %s", reason),
+			PermissionDecision:       "deny",
+			PermissionDecisionReason: fmt.Sprintf("fail-closed: %s", reason),
 		},
 	}
 	b, err := json.Marshal(out)
 	if err != nil {
-		return []byte(`{"hookSpecificOutput":{"permissionDecision":"allow"}}` + "\n"), 0
+		return []byte(`{"hookSpecificOutput":{"permissionDecision":"deny"}}` + "\n"), 0
 	}
 	return append(b, '\n'), 0
 }

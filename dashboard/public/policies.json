@@ -212,7 +212,7 @@
     "name": "block-network-scanning",
     "layer": "cel",
     "enabled": true,
-    "cel_expression": "!((args[\"command\"].matches(\"(?i).*\\\\bmasscan\\\\b.*\")) || (args[\"command\"].matches(\"(?i).*\\\\bzmap\\\\b.*\")))",
+    "cel_expression": "!((args[\"command\"].matches(\"(?i).*\\\\bmasscan\\\\b.*\")) || (args[\"command\"].matches(\"(?i).*\\\\bzmap\\\\b.*\")) || (args[\"command\"].matches(\"(?i).*\\\\bnmap\\\\b.*\")) || (args[\"command\"].matches(\"(?i).*\\\\barp-scan\\\\b.*\") || args[\"command\"].matches(\"(?i).*\\\\barp\\\\s+scan\\\\b.*\") || args[\"command\"].matches(\"(?i).*\\\\bnetdiscover\\\\b.*\")) || (args[\"command\"].matches(\"(?i).*\\\\b(unicornscan|hping3|dnsenum|dnsrecon|fierce|amass)\\\\b.*\")))",
     "description": "Block internet-scale network scanners; require approval for local debug tools"
   },
   {
@@ -228,7 +228,7 @@
     "name": "block-packet-capture",
     "layer": "cel",
     "enabled": true,
-    "cel_expression": "!((args[\"command\"].matches(\"(?i).*\\\\b(ettercap|dsniff|arpspoof|dnsspoof)\\\\b.*\")) || (args[\"command\"].matches(\"(?i).*\\\\bscapy\\\\b.*\\\\bsniff\\\\b.*\") || args[\"command\"].matches(\"(?i).*\\\\bpython[23]?\\\\b.*\\\\bsniff\\\\s*\\\\(.*\")))",
+    "cel_expression": "!((args[\"command\"].matches(\"(?i).*\\\\b(ettercap|dsniff|arpspoof|dnsspoof)\\\\b.*\")) || (args[\"command\"].matches(\"(?i).*\\\\bscapy\\\\b.*\\\\bsniff\\\\b.*\") || args[\"command\"].matches(\"(?i).*\\\\bpython[23]?\\\\b.*\\\\bsniff\\\\s*\\\\(.*\")) || (args[\"command\"].matches(\"(?i).*\\\\btcpdump\\\\b.*\")) || (args[\"command\"].matches(\"(?i).*\\\\b(wireshark|tshark)\\\\b.*\")) || (args[\"command\"].matches(\"(?i).*\\\\bngrep\\\\b.*\")) || (args[\"command\"].matches(\"(?i).*\\\\bdumpcap\\\\b.*\")))",
     "description": "Deny MITM/attack tools; require approval for legitimate packet capture debug tools"
   },
   {
@@ -244,7 +244,7 @@
     "name": "block-pipe-to-shell",
     "layer": "cel",
     "enabled": true,
-    "cel_expression": "!((args[\"command\"].matches(\"(?i)\\\\beval\\\\s+[\\\"']?\\\\$\\\\((curl|wget)\")) || (args[\"command\"].matches(\"(?i)\\\\bpython[23]?\\\\s+-c\\\\s+[\\\"'].*urllib.*exec\\\\s*\\\\(\")) || (args[\"command\"].matches(\"(?i)(source|\\\\.)\\\\s+(/tmp/|/dev/shm/|/var/tmp/)\") || args[\"command\"].matches(\"(?i)(source|\\\\.)\\\\s+\u003c\\\\((curl|wget)\")))",
+    "cel_expression": "!((args[\"command\"].matches(\"(?i)\\\\beval\\\\s+[\\\"']?\\\\$\\\\((curl|wget)\")) || (args[\"command\"].matches(\"(?i)\\\\bpython[23]?\\\\s+-c\\\\s+[\\\"'].*urllib.*exec\\\\s*\\\\(\")) || (args[\"command\"].matches(\"(?i)(source|\\\\.)\\\\s+(/tmp/|/dev/shm/|/var/tmp/)\") || args[\"command\"].matches(\"(?i)(source|\\\\.)\\\\s+\u003c\\\\((curl|wget)\")) || (args[\"command\"].matches(\"(?i)\\\\b(curl|wget)\\\\b.*https?://.*\\\\|\\\\s*(sudo\\\\s+)?(ba)?sh\\\\b\") || args[\"command\"].matches(\"(?i)\\\\b(curl|wget)\\\\b.*https?://.*\\\\|\\\\s*(sudo\\\\s+)?(python[23]?|perl|ruby|node)\\\\b\")))",
     "description": "Require approval for piping https install scripts to shell; deny eval/exec of remote content"
   },
   {
@@ -276,7 +276,7 @@
     "name": "block-rm-rf",
     "layer": "cel",
     "enabled": true,
-    "cel_expression": "!((args[\"command\"].matches(\"(?i).*\\\\brm\\\\b\\\\s+.*-[a-z]*r[a-z]*f[a-z]*\\\\s.*\") || args[\"command\"].matches(\"(?i).*\\\\brm\\\\b\\\\s+.*-[a-z]*f[a-z]*r[a-z]*\\\\s.*\") || args[\"command\"].matches(\"(?i).*\\\\brm\\\\b.*-r\\\\b.*\")) \u0026\u0026 (args[\"command\"].matches(\"(?i).*(\\\\s/\\\\s|\\\\s/etc\\\\b|\\\\s/usr\\\\b|\\\\s/bin\\\\b|\\\\s/sbin\\\\b|\\\\s/lib\\\\b|\\\\s/lib64\\\\b|\\\\s/boot\\\\b|\\\\s/sys\\\\b|\\\\s/proc\\\\b|\\\\s/dev\\\\b|\\\\s/root\\\\b|\\\\s/home\\\\b|\\\\s/\\\\*|\\\\s/[a-z]+/\\\\*).*\")))",
+    "cel_expression": "!((args[\"command\"].matches(\"(?i).*\\\\brm\\\\b\\\\s+.*-[a-z]*r[a-z]*f[a-z]*\\\\s.*\") || args[\"command\"].matches(\"(?i).*\\\\brm\\\\b\\\\s+.*-[a-z]*f[a-z]*r[a-z]*\\\\s.*\") || args[\"command\"].matches(\"(?i).*\\\\brm\\\\b.*-r\\\\b.*\")) \u0026\u0026 (args[\"command\"].matches(\"(?i).*(\\\\s/\\\\s|\\\\s/$|\\\\s/etc\\\\b|\\\\s/usr\\\\b|\\\\s/bin\\\\b|\\\\s/sbin\\\\b|\\\\s/lib\\\\b|\\\\s/lib64\\\\b|\\\\s/boot\\\\b|\\\\s/sys\\\\b|\\\\s/proc\\\\b|\\\\s/dev\\\\b|\\\\s/root\\\\b|\\\\s/home\\\\b|\\\\s/\\\\*|\\\\s/[a-z]+/\\\\*).*\")) || (args[\"command\"].matches(\"(?i).*\\\\brm\\\\b\\\\s+.*-[a-z]*r[a-z]*f[a-z]*\\\\s.*\") || args[\"command\"].matches(\"(?i).*\\\\brm\\\\b\\\\s+.*-[a-z]*f[a-z]*r[a-z]*\\\\s.*\") || args[\"command\"].matches(\"(?i).*\\\\brm\\\\b.*-r\\\\b.*\")) \u0026\u0026 !(args[\"command\"].matches(\"(?i).*(\\\\s/\\\\s|\\\\s/$|\\\\s/etc\\\\b|\\\\s/usr\\\\b|\\\\s/bin\\\\b|\\\\s/sbin\\\\b|\\\\s/lib\\\\b|\\\\s/lib64\\\\b|\\\\s/boot\\\\b|\\\\s/sys\\\\b|\\\\s/proc\\\\b|\\\\s/dev\\\\b|\\\\s/root\\\\b|\\\\s/home\\\\b|\\\\s/\\\\*|\\\\s/[a-z]+/\\\\*).*\")))",
     "description": "Block destructive rm -rf and rm -r commands; require approval for general recursive deletes"
   },
   {
@@ -286,6 +286,14 @@
     "enabled": true,
     "cel_expression": "!((args[\"command\"].matches(\"(?i)\\\\bgit\\\\s+commit\\\\b\")) \u0026\u0026 (args[\"command\"].matches(\"(?i)sk-ant-\")) || (args[\"command\"].matches(\"(?i)\\\\bgit\\\\s+commit\\\\b\")) \u0026\u0026 (args[\"command\"].matches(\"(?i)sk-proj-\") || (args[\"command\"].matches(\"(?i)\\\\bsk-[a-zA-Z0-9]{20,}\") \u0026\u0026 !args[\"command\"].matches(\"(?i)sk-ant-\"))) || (args[\"command\"].matches(\"(?i)\\\\bgit\\\\s+commit\\\\b\")) \u0026\u0026 (args[\"command\"].matches(\"(?i)(AKIA|ASIA)[A-Z0-9]{16}\")) || (args[\"command\"].matches(\"(?i)\\\\bgit\\\\s+commit\\\\b\")) \u0026\u0026 (args[\"command\"].matches(\"(?i)gh[pours]_[a-zA-Z0-9]{30,}\")) || (args[\"command\"].matches(\"(?i)\\\\bgit\\\\s+commit\\\\b\")) \u0026\u0026 (args[\"command\"].matches(\"(?i)xox[bpas]-\")) || (args[\"command\"].matches(\"(?i)\\\\bgit\\\\s+commit\\\\b\")) \u0026\u0026 (args[\"command\"].matches(\"(?i)(api[_-]?key|secret|password|token)\\\\s*[=:]\\\\s*[\\\"']?[a-zA-Z0-9_-]{10,}\")))",
     "description": "Detect potential secrets in git commit messages and require approval"
+  },
+  {
+    "id": "boundarylab-self-protection",
+    "name": "boundarylab-self-protection",
+    "layer": "cel",
+    "enabled": true,
+    "cel_expression": "!(((has(args.path) \u0026\u0026 (\n  args.path.matches(\"(?i)(\\\\.boundarylab/|\\\\.boundarylab$)\") ||\n  args.path.matches(\"(?i)\\\\.claude/settings\\\\.json$\")\n))) || ((has(args.file_path) \u0026\u0026 (\n  args.file_path.matches(\"(?i)(\\\\.boundarylab/|\\\\.boundarylab$)\") ||\n  args.file_path.matches(\"(?i)\\\\.claude/settings\\\\.json$\")\n))) || ((has(args.target_file) \u0026\u0026 (\n  args.target_file.matches(\"(?i)(\\\\.boundarylab/|\\\\.boundarylab$)\") ||\n  args.target_file.matches(\"(?i)\\\\.claude/settings\\\\.json$\")\n))) || ((has(args.command) \u0026\u0026 args.command.matches(\"(?i)(kill|pkill|killall).*boundarylab\")) || (has(args.command) \u0026\u0026 args.command.matches(\"(?i)launchctl.*(bootout|remove|unload).*boundarylab\")) || (has(args.command) \u0026\u0026 args.command.matches(\"(?i)systemctl.*(stop|disable|mask).*boundarylab\")) || (has(args.command) \u0026\u0026 args.command.matches(\"(?i)(rm|mv|chmod|chown).*[/.]boundarylab\")) || (has(args.command) \u0026\u0026 args.command.matches(\"(?i)boundarylab.*(daemon|setup).*(stop|restart|uninstall|remove)\")) || (has(args.command) \u0026\u0026 args.command.matches(\"(?i)(echo|cat|tee|sed|awk).*\u003e.*[/.]boundarylab\")) || (has(args.command) \u0026\u0026 args.command.matches(\"(?i)crontab.*boundarylab\"))))",
+    "description": "Prevent AI agents from modifying BoundaryLab governance configuration"
   },
   {
     "id": "cross-project-credential-access",
@@ -308,7 +316,7 @@
     "name": "git-branch-protection",
     "layer": "cel",
     "enabled": true,
-    "cel_expression": "!(bash.isGitBranchDelete(args[\"command\"]) \u0026\u0026 ((bash.gitBranchTarget(args[\"command\"])).matches(\"(?i)^(main|master|develop|release-.*)$\")) || bash.isGitForcePush(args[\"command\"]) \u0026\u0026 ((bash.gitBranchTarget(args[\"command\"])).matches(\"(?i)^(main|master|develop|release-.*)$\")))",
+    "cel_expression": "!(bash.isGitBranchDelete(args[\"command\"]) \u0026\u0026 ((bash.gitBranchTarget(args[\"command\"])).matches(\"(?i)^(main|master|develop|release-.*)$\")) || bash.isGitForcePush(args[\"command\"]) \u0026\u0026 ((bash.gitBranchTarget(args[\"command\"])).matches(\"(?i)^(main|master|develop|release-.*)$\")) || bash.isGitBranchDelete(args[\"command\"]) \u0026\u0026 !((bash.gitBranchTarget(args[\"command\"])).matches(\"^(worktree-.*|feature/.*|fix/.*|wip/.*)$\")) \u0026\u0026 !((bash.gitBranchTarget(args[\"command\"])).matches(\"(?i)^(main|master|develop|release-.*)$\")))",
     "description": "Protect primary branches from deletion and force-push operations"
   },
   {
@@ -406,14 +414,6 @@
     "enabled": true,
     "cel_expression": "!(false)",
     "description": "MCP tool integrity baseline — drift detection enforced at proxy layer, not CEL"
-  },
-  {
-    "id": "boundarylab-self-protection",
-    "name": "boundarylab-self-protection",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(((has(args.path) \u0026\u0026 (\n  args.path.matches(\"(?i)(\\\\.boundarylab/|\\\\.boundarylab$)\") ||\n  args.path.matches(\"(?i)\\\\.claude/settings\\\\.json$\")\n))) || ((has(args.file_path) \u0026\u0026 (\n  args.file_path.matches(\"(?i)(\\\\.boundarylab/|\\\\.boundarylab$)\") ||\n  args.file_path.matches(\"(?i)\\\\.claude/settings\\\\.json$\")\n))) || ((has(args.target_file) \u0026\u0026 (\n  args.target_file.matches(\"(?i)(\\\\.boundarylab/|\\\\.boundarylab$)\") ||\n  args.target_file.matches(\"(?i)\\\\.claude/settings\\\\.json$\")\n))) || ((has(args.command) \u0026\u0026 args.command.matches(\"(?i)(kill|pkill|killall).*boundarylab\")) || (has(args.command) \u0026\u0026 args.command.matches(\"(?i)launchctl.*(bootout|remove|unload).*boundarylab\")) || (has(args.command) \u0026\u0026 args.command.matches(\"(?i)systemctl.*(stop|disable|mask).*boundarylab\")) || (has(args.command) \u0026\u0026 args.command.matches(\"(?i)(rm|mv|chmod|chown).*[/.]boundarylab\")) || (has(args.command) \u0026\u0026 args.command.matches(\"(?i)boundarylab.*(daemon|setup).*(stop|restart|uninstall|remove)\")) || (has(args.command) \u0026\u0026 args.command.matches(\"(?i)(echo|cat|tee|sed|awk).*\u003e.*[/.]boundarylab\")) || (has(args.command) \u0026\u0026 args.command.matches(\"(?i)crontab.*boundarylab\"))))",
-    "description": "Prevent AI agents from modifying BoundaryLab governance configuration"
   },
   {
     "id": "require-approval-package-install",
@@ -1952,30 +1952,6 @@
     "description": "Detect the initial process started by a container that is not in a list of allowed containers."
   },
   {
-    "id": "kyverno-add-ambient-mode-namespace-add-ambient-mode-enabled",
-    "name": "kyverno-add-ambient-mode-namespace-add-ambient-mode-enabled",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "In order for Istio to include namespaces in ambient mode, the label `istio.io/dataplane-mode`  must be set to `ambient`. As an alternative to rejecting Namespace definitions which don't already  contain this label, it can be added automatically. This policy adds the label `istio.io/dataplane-mode` set to `ambient` for all new Namespaces."
-  },
-  {
-    "id": "kyverno-add-apparmor-annotations-apparmor-runtime-default",
-    "name": "kyverno-add-apparmor-annotations-apparmor-runtime-default",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "In the earlier Pod Security Policy controller, it was possible to define a setting which would enable AppArmor for all the containers within a Pod so they may be assigned the desired profile. Assigning an AppArmor profile, accomplished via an annotation, is useful in that it allows secure defaults to be defined and may also result in passing other validation rules such as those in the Pod Security Standards. This policy mutates Pods to add an annotation for every container to enabled AppArmor at the runtime/default level."
-  },
-  {
-    "id": "kyverno-add-capabilities-add-setfcap-setuid",
-    "name": "kyverno-add-capabilities-add-setfcap-setuid",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "In the earlier Pod Security Policy controller, it was possible to configure a policy to add capabilities to containers within a Pod. This made it easier to assign some basic defaults rather than blocking Pods or to simply provide capabilities for certain workloads if not specified. This policy mutates Pods to add the capabilities SETFCAP and SETUID so long as they are not listed as dropped capabilities first."
-  },
-  {
     "id": "kyverno-add-castai-removal-disabled-do-not-evict-cronjobs",
     "name": "kyverno-add-castai-removal-disabled-do-not-evict-cronjobs",
     "layer": "cel",
@@ -1990,78 +1966,6 @@
     "enabled": true,
     "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: Job\") \u0026\u0026 !args.content.contains(\"kind: CronJob\") \u0026\u0026 !args.content.contains(\"removal-disabled\"))",
     "description": "CAST AI will not downscale a node that includes a pod with the  autoscaling.cast.ai/removal-disabled=\"true\" label on it, this protects sensitive workloads from being evicted and can be attributed to any pod to protect against unwanted downscaling. This policy will mutate jobs and  cronjobs to add the removal-disabled label to protect against eviction."
-  },
-  {
-    "id": "kyverno-add-certificates-volume-add-ssl-certs",
-    "name": "kyverno-add-certificates-volume-add-ssl-certs",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "In some cases you would need to trust custom CA certificates for all the containers of a Pod. It makes sense to be in a ConfigMap so that you can automount them by only setting an annotation. This policy adds a volume to all containers in a Pod containing the certificate if the annotation called `inject-certs` with value `enabled` is found."
-  },
-  {
-    "id": "kyverno-add-default-resources-add-default-requests",
-    "name": "kyverno-add-default-resources-add-default-requests",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Pods which don't specify at least resource requests are assigned a QoS class of BestEffort which can hog resources for other Pods on Nodes. At a minimum, all Pods should specify resource requests in order to be labeled as the QoS class Burstable. This sample mutates any container in a Pod which doesn't specify memory or cpu requests to apply some sane defaults."
-  },
-  {
-    "id": "kyverno-add-default-securitycontext-add-default-securitycontext",
-    "name": "kyverno-add-default-securitycontext-add-default-securitycontext",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "A Pod securityContext entry defines fields such as the user and group which should be used to run the Pod. Sometimes choosing default values for users rather than blocking is a better alternative to not impede such Pod definitions. This policy will mutate a Pod to set `runAsNonRoot`, `runAsUser`, `runAsGroup`, and  `fsGroup` fields within the Pod securityContext if they are not already set."
-  },
-  {
-    "id": "kyverno-add-emptydir-sizelimit-mutate-emptydir",
-    "name": "kyverno-add-emptydir-sizelimit-mutate-emptydir",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "When a Pod requests an emptyDir, by default it does not have a size limit which may allow it to consume excess or all of the space in the medium backing the volume. This can quickly overrun a Node and may result in a denial of service for other workloads. This policy adds a sizeLimit field to all Pods mounting emptyDir volumes, if not present, and sets it to 100Mi."
-  },
-  {
-    "id": "kyverno-add-env-vars-from-cm-add-env-vars-from-cm",
-    "name": "kyverno-add-env-vars-from-cm-add-env-vars-from-cm",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Instead of defining a common set of environment variables multiple times either in manifests or separate policies, Pods can reference entire collections stored in a ConfigMap. This policy mutates all initContainers (if present) and containers in a Pod with environment variables defined in a ConfigMap named `nsenvvars` that must exist in the destination Namespace."
-  },
-  {
-    "id": "kyverno-add-external-secret-prefix-add-external-secret-prefix",
-    "name": "kyverno-add-external-secret-prefix-add-external-secret-prefix",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "This Policy mutates secretRef key to add a prefix. External Secret Operator proposes to use kyverno to force ExternalSecrets to have namespace prefix so that kubernetes administrators do not need to define permissions and users per namespace. Doing this developers are abstracted by administrators naming convention and will not  be able to access secrets from other namespaces. In this example, in the JSON patch change \"prefix-\" to your preferred prefix. For example: {{ request.namespace }}"
-  },
-  {
-    "id": "kyverno-add-image-as-env-var-pod-containers-inject-image",
-    "name": "kyverno-add-image-as-env-var-pod-containers-inject-image",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "The Kubernetes downward API only has the ability to express so many options as environment variables. The image consumed in a Pod is commonly needed to make the application aware of some logic it must take. This policy takes the value of the `image` field and adds it as an environment variable to Pods."
-  },
-  {
-    "id": "kyverno-add-imagepullsecrets-add-imagepullsecret",
-    "name": "kyverno-add-imagepullsecrets-add-imagepullsecret",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Images coming from certain registries require authentication in order to pull them, and the kubelet uses this information in the form of an imagePullSecret to pull those images on behalf of your Pod. This policy searches for images coming from a registry called `corp.reg.com` and, if found, will mutate the Pod to add an imagePullSecret called `my-secret`."
-  },
-  {
-    "id": "kyverno-add-imagepullsecrets-for-containers-and-initcontainers-add-imagepullsecret",
-    "name": "kyverno-add-imagepullsecrets-for-containers-and-initcontainers-add-imagepullsecret",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Images coming from certain registries require authentication in order to pull them, and the kubelet uses this information in the form of an imagePullSecret to pull those images on behalf of your Pod. This policy searches for images coming from a registry called `corp.reg.com` referenced by either one of the containers or one  of the init containers and, if found, will mutate the Pod to add an imagePullSecret called `my-secret`."
   },
   {
     "id": "kyverno-add-karpenter-daemonset-priority-class-add-karpenter-daemonset-priority-class",
@@ -2088,148 +1992,12 @@
     "description": "If a Pod exists with the annotation `karpenter.sh/do-not-evict: true` on a Node, and a request is made to delete the Node, Karpenter will not drain any Pods from that Node or otherwise try to delete the Node. This is useful for Pods that should run uninterrupted to completion. This policy mutates Jobs and CronJobs so that Pods spawned by them will contain the `karpenter.sh/do-not-evict: true` annotation."
   },
   {
-    "id": "kyverno-add-karpenter-nodeselector-add-large",
-    "name": "kyverno-add-karpenter-nodeselector-add-large",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Selecting the correct Node(s) provisioned by Karpenter is a way to specify the appropriate resource landing zone for a workload. This policy injects a nodeSelector map into the Pod based on the Namespace type where it is deployed."
-  },
-  {
-    "id": "kyverno-add-karpenter-nodeselector-add-medium",
-    "name": "kyverno-add-karpenter-nodeselector-add-medium",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Selecting the correct Node(s) provisioned by Karpenter is a way to specify the appropriate resource landing zone for a workload. This policy injects a nodeSelector map into the Pod based on the Namespace type where it is deployed."
-  },
-  {
     "id": "kyverno-add-labels-add-labels",
     "name": "kyverno-add-labels-add-labels",
     "layer": "cel",
     "enabled": true,
     "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 (args.content.contains(\"kind: Pod\") || args.content.contains(\"kind: Service\") || args.content.contains(\"kind: ConfigMap\") || args.content.contains(\"kind: Secret\")) \u0026\u0026 !args.content.contains(\"foo: bar\"))",
     "description": "Labels are used as an important source of metadata describing objects in various ways or triggering other functionality. Labels are also a very basic concept and should be used throughout Kubernetes. This policy performs a simple mutation which adds a label `foo=bar` to Pods, Services, ConfigMaps, and Secrets."
-  },
-  {
-    "id": "kyverno-add-linkerd-mesh-injection-add-mesh-annotations",
-    "name": "kyverno-add-linkerd-mesh-injection-add-mesh-annotations",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Sidecar proxy injection in Linkerd may be handled at the Namespace level by setting the annotation `linkerd.io/inject` to `enabled`. In addition, a second annotation may be applied which controls the Pod startup behavior. This policy sets the annotations, if not present, `linkerd.io/inject` and `config.linkerd.io/proxy-await` to `enabled` on all new Namespaces."
-  },
-  {
-    "id": "kyverno-add-linkerd-policy-annotation-deny-inbound-namespace",
-    "name": "kyverno-add-linkerd-policy-annotation-deny-inbound-namespace",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Linkerd will, by default, allow all incoming traffic to Pods in the mesh including that from outside the cluster network. In many cases, this default needs to be changed to deny all traffic so it may be selectively opened using Linkerd policy objects. This policy sets the annotation `config.linkerd.io/default-inbound-policy` to `deny`, if not present, for new Namespaces. It can be customized with exclusions to more tightly control its application."
-  },
-  {
-    "id": "kyverno-add-ndots-add-ndots",
-    "name": "kyverno-add-ndots-add-ndots",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "The ndots value controls where DNS lookups are first performed in a cluster and needs to be set to a lower value than the default of 5 in some cases. This policy mutates all Pods to add the ndots option with a value of 1."
-  },
-  {
-    "id": "kyverno-add-networkpolicy-default-deny",
-    "name": "kyverno-add-networkpolicy-default-deny",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "By default, Kubernetes allows communications across all Pods within a cluster. The NetworkPolicy resource and a CNI plug-in that supports NetworkPolicy must be used to restrict communications. A default NetworkPolicy should be configured for each Namespace to default deny all ingress and egress traffic to the Pods in the Namespace. Application teams can then configure additional NetworkPolicy resources to allow desired traffic to application Pods from select sources. This policy will create a new NetworkPolicy resource named `default-deny` which will deny all traffic anytime a new Namespace is created."
-  },
-  {
-    "id": "kyverno-add-networkpolicy-dns-add-netpol-dns",
-    "name": "kyverno-add-networkpolicy-dns-add-netpol-dns",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "By default, Kubernetes allows communication across all Pods within a cluster. The NetworkPolicy resource and a CNI plug-in that supports NetworkPolicy must be used to restrict communication. A default NetworkPolicy should be configured for each Namespace to deny all egress traffic from the Pods while still allowing DNS resolution. Application teams can then configure additional NetworkPolicy resources to allow desired traffic to application Pods from select sources. This policy will create a new NetworkPolicy resource named `allow-dns` when a new Namespace is created,  which will deny all egress traffic while still allowing DNS queries to the kube-system Namespace."
-  },
-  {
-    "id": "kyverno-add-node-affinity-add-node-affinity-deployment",
-    "name": "kyverno-add-node-affinity-add-node-affinity-deployment",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Node affinity, similar to node selection, is a way to specify which node(s) on which Pods will be scheduled but based on more complex conditions. This policy will add node affinity to a Deployment and if one already exists an expression will be added to it."
-  },
-  {
-    "id": "kyverno-add-node-labels-pod-project-foo",
-    "name": "kyverno-add-node-labels-pod-project-foo",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Containers running in Pods may sometimes need access to node-specific information on  which the Pod has been scheduled. A common use case is node topology labels to ensure  pods are spread across failure zones in racks or in the cloud. The mutate-pod-binding policy already does this for annotations, but it does not handle labels. A useful use case is for passing metric label information to ServiceMonitors and then into Prometheus. This policy watches for Pod binding events when the pod is scheduled and then  asynchronously mutates the existing Pod to add the labels. This policy requires the following changes to common default configurations: - The kyverno resourceFilter should not filter Pod/binding resources. - The kyverno backgroundController service account requires Update permission on pods.  It is recommended to use https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles"
-  },
-  {
-    "id": "kyverno-add-nodeselector-add-nodeselector",
-    "name": "kyverno-add-nodeselector-add-nodeselector",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "The nodeSelector field uses labels to select the node on which a Pod can be scheduled. This can be useful when Pods have specific needs that only certain nodes in a cluster can provide. This policy adds the nodeSelector field to a Pod spec and configures it with labels `foo` and `color`."
-  },
-  {
-    "id": "kyverno-add-ns-quota-generate-limitrange",
-    "name": "kyverno-add-ns-quota-generate-limitrange",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "To better control the number of resources that can be created in a given Namespace and provide default resource consumption limits for Pods, ResourceQuota and LimitRange resources are recommended. This policy will generate ResourceQuota and LimitRange resources when a new Namespace is created."
-  },
-  {
-    "id": "kyverno-add-ns-quota-generate-resourcequota",
-    "name": "kyverno-add-ns-quota-generate-resourcequota",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "To better control the number of resources that can be created in a given Namespace and provide default resource consumption limits for Pods, ResourceQuota and LimitRange resources are recommended. This policy will generate ResourceQuota and LimitRange resources when a new Namespace is created."
-  },
-  {
-    "id": "kyverno-add-pod-priorityclassname-add-priorityclass-controllers",
-    "name": "kyverno-add-pod-priorityclassname-add-priorityclass-controllers",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "A Pod PriorityClass is used to provide a guarantee on the scheduling of a Pod relative to others. This policy adds the priorityClassName of `non-production` to any Pod controller deployed into a Namespace that does not have the label env=production."
-  },
-  {
-    "id": "kyverno-add-pod-priorityclassname-add-priorityclass-cronjobs",
-    "name": "kyverno-add-pod-priorityclassname-add-priorityclass-cronjobs",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "A Pod PriorityClass is used to provide a guarantee on the scheduling of a Pod relative to others. This policy adds the priorityClassName of `non-production` to any Pod controller deployed into a Namespace that does not have the label env=production."
-  },
-  {
-    "id": "kyverno-add-pod-proxies-add-pod-proxies",
-    "name": "kyverno-add-pod-proxies-add-pod-proxies",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "In restricted environments, Pods may not be allowed to egress directly to all destinations and some overrides to specific addresses may need to go through a corporate proxy. This policy adds proxy information to Pods in the form of environment variables. It will add the `env` array if not present. If any Pods have any of these env vars, they will be overwritten with the value(s) in this policy."
-  },
-  {
-    "id": "kyverno-add-privileged-existing-namespaces-label-privileged-namespaces",
-    "name": "kyverno-add-privileged-existing-namespaces-label-privileged-namespaces",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "When Pod Security Admission is configured with a cluster-wide AdmissionConfiguration file which sets either baseline or restricted, for example in many PaaS CIS profiles, it may be necessary to relax this to privileged on a per-Namespace basis so that more granular control can be provided. This policy labels new and existing Namespaces, except that of kube-system, with the `pod-security.kubernetes.io/enforce: privileged` label."
-  },
-  {
-    "id": "kyverno-add-psa-labels-add-baseline-enforce-restricted-warn",
-    "name": "kyverno-add-psa-labels-add-baseline-enforce-restricted-warn",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Pod Security Admission (PSA) can be controlled via the assignment of labels at the Namespace level which define the Pod Security Standard (PSS) profile in use and the action to take. If not using a cluster-wide configuration via an AdmissionConfiguration file, Namespaces must be explicitly labeled. This policy assigns the labels `pod-security.kubernetes.io/enforce=baseline` and `pod-security.kubernetes.io/warn=restricted` to all new Namespaces if those labels are not included."
   },
   {
     "id": "kyverno-add-psa-namespace-reporting-check-namespace-labels-namespace",
@@ -2240,84 +2008,12 @@
     "description": "This policy is valuable as it ensures that all namespaces within a Kubernetes  cluster are labeled with Pod Security Admission (PSA) labels, which are crucial for defining security levels and ensuring that pods within a namespace operate  under the defined Pod Security Standard (PSS). By enforcing namespace labeling, This policy audits namespaces to verify the presence of PSA labels.  If a namespace is found without the required labels, it generates and maintain  and ClusterPolicy Report in default namespace.  This helps administrators identify namespaces that do not comply with the  organization's security practices and take appropriate action to rectify the  situation."
   },
   {
-    "id": "kyverno-add-rolebinding-generate-admin-binding",
-    "name": "kyverno-add-rolebinding-generate-admin-binding",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Typically in multi-tenancy and other use cases, when a new Namespace is created, users and other principals must be given some permissions to create and interact with resources in the Namespace. Very commonly, Roles and RoleBindings are used to grant permissions at the Namespace level. This policy generates a RoleBinding called `\u003cuserName\u003e-admin-binding` in the new Namespace which binds to the ClusterRole `admin` as long as a `cluster-admin` did not create the Namespace. Additionally, an annotation named `kyverno.io/user` is added to the RoleBinding recording the name of the user responsible for the Namespace's creation."
-  },
-  {
-    "id": "kyverno-add-runtimeclassname-add-prodclass",
-    "name": "kyverno-add-runtimeclassname-add-prodclass",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "In the earlier Pod Security Policy controller, it was possible to configure a policy to add a Pod's runtimeClassName. This was beneficial in that various container runtimes could be specified according to a policy. This Kyverno policies mutates Pods to add a runtimeClassName of `prodclass`."
-  },
-  {
-    "id": "kyverno-add-safe-to-evict-annotate-empty-dir",
-    "name": "kyverno-add-safe-to-evict-annotate-empty-dir",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "The Kubernetes cluster autoscaler does not evict pods that  use hostPath or emptyDir volumes. To allow eviction of these pods, the annotation  cluster-autoscaler.kubernetes.io/safe-to-evict=true must be added to the pods."
-  },
-  {
-    "id": "kyverno-add-safe-to-evict-annotate-host-path",
-    "name": "kyverno-add-safe-to-evict-annotate-host-path",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "The Kubernetes cluster autoscaler does not evict pods that  use hostPath or emptyDir volumes. To allow eviction of these pods, the annotation  cluster-autoscaler.kubernetes.io/safe-to-evict=true must be added to the pods."
-  },
-  {
-    "id": "kyverno-add-sidecar-injection-namespace-add-istio-injection-enabled",
-    "name": "kyverno-add-sidecar-injection-namespace-add-istio-injection-enabled",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "In order for Istio to inject sidecars to workloads deployed into Namespaces, the label `istio-injection` must be set to `enabled`. As an alternative to rejecting Namespace definitions which don't already contain this label, it can be added automatically. This policy adds the label `istio-inject` set to `enabled` for all new Namespaces."
-  },
-  {
-    "id": "kyverno-add-tolerations-service-toleration",
-    "name": "kyverno-add-tolerations-service-toleration",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Pod tolerations are used to schedule on Nodes which have a matching taint. This policy adds the toleration `org.com/role=service:NoSchedule` if existing tolerations do not contain the key `org.com/role`."
-  },
-  {
-    "id": "kyverno-add-ttl-jobs-add-ttlsecondsafterfinished",
-    "name": "kyverno-add-ttl-jobs-add-ttlsecondsafterfinished",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Jobs which are user created can often pile up and consume excess space in the cluster. In Kubernetes 1.23, the TTL-after-finished controller is stable and will automatically clean up these Jobs if the ttlSecondsAfterFinished is specified. This policy adds the ttlSecondsAfterFinished field to an Job that does not have an ownerReference set if not already specified."
-  },
-  {
-    "id": "kyverno-add-volume-add-volume",
-    "name": "kyverno-add-volume-add-volume",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Some Kubernetes applications like HashiCorp Vault must perform some modifications to resources in order to invoke their specific functionality. Often times, that functionality is controlled by the presence of a label or specific annotation. This policy, based on HashiCorp Vault, adds a volume and volumeMount to a Deployment if there is an annotation called \"vault.k8s.corp.net/inject=enabled\" present."
-  },
-  {
     "id": "kyverno-advanced-restrict-image-registries-validate-corp-registries-pod",
     "name": "kyverno-advanced-restrict-image-registries-validate-corp-registries-pod",
     "layer": "cel",
     "enabled": true,
     "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.matches(\".*image:\\\\s+.*\") \u0026\u0026 !args.content.matches(\".*image:\\\\s+(corp\\\\.registry\\\\.io|gcr\\\\.io|docker\\\\.io/company).*\"))",
     "description": "In instances where a ClusterPolicy defines all the approved image registries is insufficient, more granular control may be needed to set permitted registries, especially in multi-tenant use cases where some registries may be based on the Namespace. This policy shows an advanced version of the Restrict Image Registries policy which gets a global approved registry from a ConfigMap and, based upon an annotation at the Namespace level, gets the registry approved for that Namespace."
-  },
-  {
-    "id": "kyverno-advertise-node-extended-resources-advertise-dongle",
-    "name": "kyverno-advertise-node-extended-resources-advertise-dongle",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Kubernetes Nodes, in addition to standard compute resources like CPU and memory, may offer extended resources such as FPGAs and GPUs, both of which can be defined per custom design. These extended resources are advertised in the `status` object of a Node. This policy, functional only starting in Kyverno 1.9, adds the extended resource `example.com/dongle` with a value/capacity of `2` to Kubernetes Nodes."
   },
   {
     "id": "kyverno-allowed-annotations-allowed-fluxcd-annotations-pod",
@@ -2400,14 +2096,6 @@
     "description": "By default, images that have already been pulled can be accessed by other Pods without re-pulling them if the name and tag are known. In multi-tenant scenarios, this may be undesirable. This policy mutates all incoming Pods to set their imagePullPolicy to Always. An alternative to the Kubernetes admission controller AlwaysPullImages."
   },
   {
-    "id": "kyverno-annotate-base-images-mutate-base-image",
-    "name": "kyverno-annotate-base-images-mutate-base-image",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "A base image used to construct a container image is not accessible by any Kubernetes component and not a field in a Pod spec as it must be fetched from a registry. Having this information available in the resource referencing the containers helps to provide a clearer understanding of its contents. This policy adds an annotation to a Pod or its controllers with the base image used for each container if present in an OCI annotation."
-  },
-  {
     "id": "kyverno-application-field-validation-destination-server-name-application",
     "name": "kyverno-application-field-validation-destination-server-name-application",
     "layer": "cel",
@@ -2448,14 +2136,6 @@
     "description": "This policy ensures that the name of the ApplicationSet is the same value provided in the project."
   },
   {
-    "id": "kyverno-apply-pss-restricted-profile-add-pss-fields",
-    "name": "kyverno-apply-pss-restricted-profile-add-pss-fields",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Pod Security Standards define the fields and their options which are allowable for Pods to achieve certain security best practices. While these are typically validation policies, workloads will either be accepted or rejected based upon what has already been defined. It is also possible to mutate incoming Pods to achieve the desired PSS level rather than reject. This policy sets all the fields necessary to pass the PSS Restricted profile. Note that it does not attempt to remove non-compliant volumes and volumeMounts. Additional policies may be employed for this purpose."
-  },
-  {
     "id": "kyverno-appproject-clusterresourceblacklist-has-wildcard-and-validate-clusterresourceblacklist-appproject",
     "name": "kyverno-appproject-clusterresourceblacklist-has-wildcard-and-validate-clusterresourceblacklist-appproject",
     "layer": "cel",
@@ -2478,38 +2158,6 @@
     "enabled": true,
     "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: AppProject\") \u0026\u0026 !args.content.contains(\"clusterResourceBlacklist:\"))",
     "description": "An AppProject may optionally specify clusterResourceBlacklist which is a blacklisted group of cluster resources. This is often a good practice to ensure AppProjects do not allow more access than needed. This policy is a combination of two rules which enforce that all AppProjects specify clusterResourceBlacklist and that their group and kind have wildcards as values."
-  },
-  {
-    "id": "kyverno-argo-cluster-generation-from-rancher-capi-source-rancher-non-local-cluster-and-capi-secret",
-    "name": "kyverno-argo-cluster-generation-from-rancher-capi-source-rancher-non-local-cluster-and-capi-secret",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "This policy generates and synchronizes Argo CD cluster secrets from Rancher  managed cluster.provisioning.cattle.io/v1 resources and their corresponding CAPI secrets. In this solution, Argo CD integrates with Rancher managed clusters via the central Rancher authentication proxy which shares the network endpoint of the Rancher API/GUI. The policy implements work-arounds for Argo CD issue https://github.com/argoproj/argo-cd/issues/9033 \"Cluster-API cluster auto-registration\" and Rancher issue https://github.com/rancher/rancher/issues/38053 \"Fix type and labels Rancher v2 provisioner specifies when creating CAPI Cluster Secret\"."
-  },
-  {
-    "id": "kyverno-audit-event-on-delete-generate-event-on-delete",
-    "name": "kyverno-audit-event-on-delete-generate-event-on-delete",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Kubernetes Events are limited in that the circumstances under which they are created cannot be changed and with what they are associated is fixed. It may be advantageous in many cases to augment these out-of-the-box Events with custom Events which can be custom designed to your needs. This policy generates an Event when a Secret has been deleted. It lists the userInfo of the actor performing the deletion."
-  },
-  {
-    "id": "kyverno-audit-event-on-exec-generate-event-on-exec",
-    "name": "kyverno-audit-event-on-exec-generate-event-on-exec",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Kubernetes Events are limited in that the circumstances under which they are created cannot be changed and with what they are associated is fixed. It may be advantageous in many cases to augment these out-of-the-box Events with custom Events which can be custom designed to your needs. This policy generates an Event on a Pod when an exec has been made to it. It lists the userInfo of the actor performing the exec along with the command used in the exec."
-  },
-  {
-    "id": "kyverno-backup-all-volumes-backup-velero-pv",
-    "name": "kyverno-backup-all-volumes-backup-velero-pv",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "In order for Velero to backup volumes in a Pod using an opt-in approach, it requires an annotation on the Pod called `backup.velero.io/backup-volumes` with the value being a comma-separated list of the volumes mounted to that Pod. This policy automatically annotates Pods (and Pod controllers) which refer to a PVC so that all volumes are listed in the aforementioned annotation if a Namespace with the label `velero-backup-pvc=true`."
   },
   {
     "id": "kyverno-block-ephemeral-containers-block-ephemeral-containers-pod",
@@ -2590,14 +2238,6 @@
     "enabled": true,
     "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: Certificate\") \u0026\u0026 !args.content.contains(\"issuerRef:\"))",
     "description": "Certificates for trusted domains should always be steered to a controlled issuer to ensure the chain of trust is appropriate for that application. Users may otherwise be able to create their own issuers and sign certificates for other domains. This policy ensures that a certificate request for a specific domain uses a designated ClusterIssuer."
-  },
-  {
-    "id": "kyverno-change-dns-config-policy-dns-policy",
-    "name": "kyverno-change-dns-config-policy-dns-policy",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "The Default DNS policy in Kubernetes gives the flexibility of service  access; however, it costs some latency on a high scale, and it needs to  be optimized. This policy helps us to optimize the performance of DNS  queries by setting DNS Options, nodelocalDNS IP, and search Domains. This policy can be applied for the clusters provisioned by kubeadm."
   },
   {
     "id": "kyverno-check-deprecated-apis-validate-v1-25-removals-batch---cronjob",
@@ -2848,62 +2488,6 @@
     "description": "VerticalPodAutoscaler (VPA) is useful to automatically adjust the resources assigned to Pods.  It requires defining a specific target resource by kind and name. There are no built-in  validation checks by the VPA controller to ensure that the target resource is associated with it.  This policy ensures that the matching kind has a matching VPA."
   },
   {
-    "id": "kyverno-concatenate-configmaps-concat-cm",
-    "name": "kyverno-concatenate-configmaps-concat-cm",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "In some cases, an update to an existing resource should have downstream effects on a different resource in another Namespace. Rather than overwriting the target, the current state of the source can be concatenated to the target. This policy, triggered by an update to a source ConfigMap, concatenates that value of a target ConfigMap in a different Namespace."
-  },
-  {
-    "id": "kyverno-config-syncer-secret-generation-from-rancher-capi-source-rancher-non-local-cluster-and-capi-secret",
-    "name": "kyverno-config-syncer-secret-generation-from-rancher-capi-source-rancher-non-local-cluster-and-capi-secret",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "This policy generates and synchronizes a Kubeops Config Syncer merged kubeconfig Secret from Rancher managed cluster CAPI secrets. This kubeconfig Secret is required by the Kubeops Config Syncer for it to sync ConfigMaps/Secrets from the Rancher management cluster to downstream clusters."
-  },
-  {
-    "id": "kyverno-copy-namespace-labels-all-label-deployment-from-ns",
-    "name": "kyverno-copy-namespace-labels-all-label-deployment-from-ns",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "It is common for Namespaced resources to need access to labels which have been assigned to the Namespace in which they reside. This policy demonstrates two different ways of assigning Namespace labels to a Deployment. The first method copies only the `owner` label while the second copies all labels except for `kubernetes.io/metadata.name`."
-  },
-  {
-    "id": "kyverno-copy-namespace-labels-owner-label-deployment-from-ns",
-    "name": "kyverno-copy-namespace-labels-owner-label-deployment-from-ns",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "It is common for Namespaced resources to need access to labels which have been assigned to the Namespace in which they reside. This policy demonstrates two different ways of assigning Namespace labels to a Deployment. The first method copies only the `owner` label while the second copies all labels except for `kubernetes.io/metadata.name`."
-  },
-  {
-    "id": "kyverno-cordon-and-drain-node-mutate-node",
-    "name": "kyverno-cordon-and-drain-node-mutate-node",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "There are cases where either an operations or security incident may occur and Nodes should be evacuated and placed in an unused state for further analysis. For example, a Node is found to be running a vulnerable version of a CRI engine or kernel and to minimize chances of a compromise may need to be decommissioned so another can be built. This policy shows how to use Kyverno to both cordon and drain a given Node and uses a hypothetical label being written to it called `testing=drain` to illustrate the point. For production use, the match block should be modified to trigger on the appropriate condition."
-  },
-  {
-    "id": "kyverno-create-authorizationpolicy-generate-deny-authorizationpolicy",
-    "name": "kyverno-create-authorizationpolicy-generate-deny-authorizationpolicy",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "An AuthorizationPolicy enables access controls on workloads in the mesh. It supports per-Namespace controls which can be a union of different behaviors. This policy creates a default deny AuthorizationPolicy for all new Namespaces. Further AuthorizationPolicies should be created to more granularly allow traffic as permitted. Use of this policy will likely require granting the Kyverno ServiceAccount additional privileges required to generate AuthorizationPolicy resources."
-  },
-  {
-    "id": "kyverno-create-default-pdb-create-default-pdb",
-    "name": "kyverno-create-default-pdb-create-default-pdb",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "A PodDisruptionBudget limits the number of Pods of a replicated application that are down simultaneously from voluntary disruptions. For example, a quorum-based application would like to ensure that the number of replicas running is never brought below the number needed for a quorum. As an application owner, you can create a PodDisruptionBudget (PDB) for each application. This policy will create a PDB resource whenever a new Deployment is created."
-  },
-  {
     "id": "kyverno-deny-commands-in-exec-probe-check-commands-pod",
     "name": "kyverno-deny-commands-in-exec-probe-check-commands-pod",
     "layer": "cel",
@@ -2982,22 +2566,6 @@
     "enabled": true,
     "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: PodDisruptionBudget\"))",
     "description": "PodDisruptionBudget resources are useful to ensuring minimum availability is maintained at all times. Introducing a PDB where there are already matching Pod controllers may pose a problem if the author is unaware of the existing replica count. This policy ensures that the minAvailable value is not greater not equal to the replica count of any matching existing Deployment. If other Pod controllers should also be included in this check, additional rules may be added to the policy which match those controllers."
-  },
-  {
-    "id": "kyverno-disable-automountserviceaccounttoken-disable-automountserviceaccounttoken",
-    "name": "kyverno-disable-automountserviceaccounttoken-disable-automountserviceaccounttoken",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "A new ServiceAccount called `default` is created whenever a new Namespace is created. Pods spawned in that Namespace, unless otherwise set, will be assigned this ServiceAccount. This policy mutates any new `default` ServiceAccounts to disable auto-mounting of the token into Pods obviating the need to do so individually."
-  },
-  {
-    "id": "kyverno-disable-service-discovery-example-configmap-lookup",
-    "name": "kyverno-disable-service-discovery-example-configmap-lookup",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Not all Pods require communicating with other Pods or resolving in-cluster Services. For those, disabling service discovery can increase security as the Pods are limited to what they can see. This policy mutates Pods to set dnsPolicy to `Default` and enableServiceLinks to `false`."
   },
   {
     "id": "kyverno-disallow-capabilities-adding-capabilities-pod",
@@ -3424,14 +2992,6 @@
     "description": "Capabilities permit privileged actions without giving full root access. The CAP_NET_RAW capability, enabled by default, allows processes in a container to forge packets and bind to any interface potentially leading to MitM attacks. This policy ensures that all containers explicitly drop the CAP_NET_RAW ability. Note that this policy also illustrates how to cover drop entries in any case although this may not strictly conform to the Pod Security Standards."
   },
   {
-    "id": "kyverno-enable-kubecost-continuous-rightsizing-enable-kubecost-autoscaling",
-    "name": "kyverno-enable-kubecost-continuous-rightsizing-enable-kubecost-autoscaling",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Kubecost is able to modify container resource requests and limits dynamically based upon observed utilization patterns and recommendations. This provides an easy way to automatically improve allocation of cluster resources by increasing efficiency. This policy will annotate all Deployments which have the label `env=test` with `request.autoscaling.kubecost.com/enabled=\"true\"` if the annotation is not already present. Other annotations may be added according to need and users should see the documentation for a complete list."
-  },
-  {
     "id": "kyverno-enforce-ambient-mode-namespace-check-amblient-mode-enabled-namespace",
     "name": "kyverno-enforce-ambient-mode-namespace-check-amblient-mode-enabled-namespace",
     "layer": "cel",
@@ -3520,62 +3080,6 @@
     "description": "Pods which are allowed to mount hostPath volumes in read/write mode pose a security risk even if confined to a \"safe\" file system on the host and may escape those confines (see https://blog.aquasec.com/kubernetes-security-pod-escape-log-mounts). The only true way to ensure safety is to enforce that all Pods mounting hostPath volumes do so in read only mode. This policy checks all containers for any hostPath volumes and ensures they are explicitly mounted in readOnly mode."
   },
   {
-    "id": "kyverno-exclude-namespaces-example-exclude-namespaces-dynamically-cronjobs-cronjob",
-    "name": "kyverno-exclude-namespaces-example-exclude-namespaces-dynamically-cronjobs-cronjob",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: CronJob\") \u0026\u0026 !args.content.contains(\"foo:\"))",
-    "description": "It's common where policy lookups need to consider a mapping to many possible values rather than a static mapping. This is a sample which demonstrates how to dynamically look up an allow list of Namespaces from a ConfigMap where the ConfigMap stores an array of strings. This policy validates that any CronJobs created outside of the list of Namespaces have the label `foo` applied."
-  },
-  {
-    "id": "kyverno-exclude-namespaces-example-exclude-namespaces-dynamically-daemonset",
-    "name": "kyverno-exclude-namespaces-example-exclude-namespaces-dynamically-daemonset",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: DaemonSet\") \u0026\u0026 !args.content.contains(\"foo:\"))",
-    "description": "It's common where policy lookups need to consider a mapping to many possible values rather than a static mapping. This is a sample which demonstrates how to dynamically look up an allow list of Namespaces from a ConfigMap where the ConfigMap stores an array of strings. This policy validates that any DaemonSets created outside of the list of Namespaces have the label `foo` applied."
-  },
-  {
-    "id": "kyverno-exclude-namespaces-example-exclude-namespaces-dynamically-deployment",
-    "name": "kyverno-exclude-namespaces-example-exclude-namespaces-dynamically-deployment",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: Deployment\") \u0026\u0026 !args.content.contains(\"foo:\"))",
-    "description": "It's common where policy lookups need to consider a mapping to many possible values rather than a static mapping. This is a sample which demonstrates how to dynamically look up an allow list of Namespaces from a ConfigMap where the ConfigMap stores an array of strings. This policy validates that any Deployments created outside of the list of Namespaces have the label `foo` applied."
-  },
-  {
-    "id": "kyverno-exclude-namespaces-example-exclude-namespaces-dynamically-job",
-    "name": "kyverno-exclude-namespaces-example-exclude-namespaces-dynamically-job",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: Job\") \u0026\u0026 !args.content.contains(\"foo:\"))",
-    "description": "It's common where policy lookups need to consider a mapping to many possible values rather than a static mapping. This is a sample which demonstrates how to dynamically look up an allow list of Namespaces from a ConfigMap where the ConfigMap stores an array of strings. This policy validates that any Jobs created outside of the list of Namespaces have the label `foo` applied."
-  },
-  {
-    "id": "kyverno-exclude-namespaces-example-exclude-namespaces-dynamically-pods-pod",
-    "name": "kyverno-exclude-namespaces-example-exclude-namespaces-dynamically-pods-pod",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: Pod\") \u0026\u0026 !args.content.contains(\"foo:\"))",
-    "description": "It's common where policy lookups need to consider a mapping to many possible values rather than a static mapping. This is a sample which demonstrates how to dynamically look up an allow list of Namespaces from a ConfigMap where the ConfigMap stores an array of strings. This policy validates that any Pods created outside of the list of Namespaces have the label `foo` applied."
-  },
-  {
-    "id": "kyverno-exclude-namespaces-example-exclude-namespaces-dynamically-statefulset",
-    "name": "kyverno-exclude-namespaces-example-exclude-namespaces-dynamically-statefulset",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: StatefulSet\") \u0026\u0026 !args.content.contains(\"foo:\"))",
-    "description": "It's common where policy lookups need to consider a mapping to many possible values rather than a static mapping. This is a sample which demonstrates how to dynamically look up an allow list of Namespaces from a ConfigMap where the ConfigMap stores an array of strings. This policy validates that any StatefulSets created outside of the list of Namespaces have the label `foo` applied."
-  },
-  {
-    "id": "kyverno-expiration-for-policyexceptions-expire-four-hours",
-    "name": "kyverno-expiration-for-policyexceptions-expire-four-hours",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "In situations where Ops/Platform teams want to allow exceptions on a temporary basis, there must be a way to remove the PolicyException once the expiration time has been reached. After the exception is removed, the rule(s) for which the exception is granted go back into full effect. This policy generates a ClusterCleanupPolicy with a four hour expiration time after which the PolicyException is deleted. It may be necessary to grant both the Kyverno as well as cleanup controller ServiceAccounts additional permissions to operate this policy."
-  },
-  {
     "id": "kyverno-forbid-cpu-limits-check-cpu-limits-pod",
     "name": "kyverno-forbid-cpu-limits-check-cpu-limits-pod",
     "layer": "cel",
@@ -3584,36 +3088,12 @@
     "description": "Setting of CPU limits is a debatable poor practice as it can result, when defined, in potentially starving applications of much-needed CPU cycles even when they are available. Ensuring that CPU limits are not set may ensure apps run more effectively. This policy forbids any container in a Pod from defining CPU limits."
   },
   {
-    "id": "kyverno-generate-flux-multi-tenant-resources-generate-flux-rolebinding",
-    "name": "kyverno-generate-flux-multi-tenant-resources-generate-flux-rolebinding",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "As part of the tenant provisioning process, Flux needs to generate RBAC resources. This policy will create a ServiceAccount and RoleBinding when a new or existing Namespace is labeled with `toolkit.fluxcd.io/tenant`. Use of this rule may require an additional binding for the Kyverno ServiceAccount so it has permissions to properly create the RoleBinding."
-  },
-  {
-    "id": "kyverno-generate-flux-multi-tenant-resources-generate-flux-sa",
-    "name": "kyverno-generate-flux-multi-tenant-resources-generate-flux-sa",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "As part of the tenant provisioning process, Flux needs to generate RBAC resources. This policy will create a ServiceAccount and RoleBinding when a new or existing Namespace is labeled with `toolkit.fluxcd.io/tenant`. Use of this rule may require an additional binding for the Kyverno ServiceAccount so it has permissions to properly create the RoleBinding."
-  },
-  {
     "id": "kyverno-generate-networkpolicy-existing-generate-existing-networkpolicy",
     "name": "kyverno-generate-networkpolicy-existing-generate-existing-networkpolicy",
     "layer": "cel",
     "enabled": true,
     "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: Namespace\"))",
     "description": "A NetworkPolicy is often a critical piece when provisioning new Namespaces, but there may be existing Namespaces which also need the same resource. Creating each one individually or manipulating each Namespace in order to trigger creation is additional overhead. This policy creates a new NetworkPolicy for existing Namespaces which results in a default deny behavior and labels it with created-by=kyverno."
-  },
-  {
-    "id": "kyverno-get-debug-data-policy-get-debug-data-policy-rule",
-    "name": "kyverno-get-debug-data-policy-get-debug-data-policy-rule",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "This policy generates a job which gathers troubleshooting data (including logs, kubectl describe output and events from the namespace) from pods that are in CrashLoopBackOff and have 3 restarts. This data can further be used to automatically create a Jira issue using some kind of automation or another Kyverno policy. For more information on the image used in this policy in addition to the necessary RBAC resources required in order for this policy to operate, see the documentation at https://github.com/nirmata/SRE-Operational-Usecases/tree/main/get-troubleshooting-data/get-debug-data."
   },
   {
     "id": "kyverno-imagepullpolicy-always-imagepullpolicy-always-pod",
@@ -3630,38 +3110,6 @@
     "enabled": true,
     "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: Ingress\") \u0026\u0026 args.content.contains(\"tls:\"))",
     "description": "Ingress resources which name a host name that is not present in the TLS section can produce ingress routing failures as a TLS certificate may not correspond to the destination host. This policy ensures that the host name in an Ingress rule is also found in the list of TLS hosts."
-  },
-  {
-    "id": "kyverno-inject-env-var-from-image-label-add-env-maintainer",
-    "name": "kyverno-inject-env-var-from-image-label-add-env-maintainer",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Container images which use metadata such as the LABEL directive in a Dockerfile do not surface this information to apps running within. In some cases, running the image as a container may need access to this information. This policy injects the value of a label set in a Dockerfile named `maintainer` as an environment variable to the corresponding container in the Pod."
-  },
-  {
-    "id": "kyverno-inject-infrastructurename-replace-template",
-    "name": "kyverno-inject-infrastructurename-replace-template",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "A required component of a MachineSet is the infrastructure name which is a random string created in a separate resource. It can be tedious or impossible to know this for each MachineSet created. This policy fetches the value of the infrastructure name from the Cluster resource and replaces all instances of TEMPLATE in a MachineSet with that name."
-  },
-  {
-    "id": "kyverno-inject-sidecar-inject-sidecar",
-    "name": "kyverno-inject-sidecar-inject-sidecar",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "The sidecar pattern is very common in Kubernetes whereby other applications can insert components via tacit modification of a submitted resource. This is, for example, often how service meshes and secrets applications are able to function transparently. This policy injects a sidecar container, initContainer, and volume into Pods that match an annotation called `vault.hashicorp.com/agent-inject: true`."
-  },
-  {
-    "id": "kyverno-insert-pod-antiaffinity-insert-pod-antiaffinity",
-    "name": "kyverno-insert-pod-antiaffinity-insert-pod-antiaffinity",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Applications may involve multiple replicas of the same Pod for availability as well as scale purposes, yet Kubernetes does not by default provide a solution for availability. This policy sets a Pod anti-affinity configuration on Deployments which contain an `app` label if it is not already present."
   },
   {
     "id": "kyverno-inspect-csr-csr-certificatesigningrequest",
@@ -3688,28 +3136,12 @@
     "description": "Check the 'dataprotection' label that production Deployments and StatefulSet have a named K10 Policy. Use in combination with 'generate' ClusterPolicy to 'generate' a specific K10 Policy by name."
   },
   {
-    "id": "kyverno-k10-policy-hourly-rpo-k10-policy-hourly-rpo-config-kio-kasten-io-v1alpha1-policy",
-    "name": "kyverno-k10-policy-hourly-rpo-k10-policy-hourly-rpo-config-kio-kasten-io-v1alpha1-policy",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "K10 Policy resources can be educated to adhere to common Recovery Point Objective (RPO) best practices. This policy is advising to use an RPO frequency that with hourly granularity if it has the appPriority: Mission Critical"
-  },
-  {
     "id": "kyverno-k10-validate-ns-by-preset-label-k10-validate-ns-by-preset-label-namespace",
     "name": "kyverno-k10-validate-ns-by-preset-label-k10-validate-ns-by-preset-label-namespace",
     "layer": "cel",
     "enabled": true,
     "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: Namespace\") \u0026\u0026 !args.content.contains(\"dataprotection:\"))",
     "description": "Kubernetes applications are typically deployed into a single, logical namespace. Kasten K10 policies will discover and protect all resources within the selected namespace(s). This policy ensures all new namespaces include a label referencing a valid K10 SLA (Policy Preset) for data protection.This policy can be used in combination with generate ClusterPolicy to automatically create a K10 policy based on the specified SLA. The combination ensures that new applications are not inadvertently left unprotected."
-  },
-  {
-    "id": "kyverno-k6t-add-services-k6t-add-service-ssh",
-    "name": "kyverno-k6t-add-services-k6t-add-service-ssh",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Add an SSH Service to every VirtualMachineInstance which is getting created. This Service will use a ClusterIP, thus the admin has to ensure that the IP space is large enough and ClusterIP type can be met."
   },
   {
     "id": "kyverno-k6t-enforce-instancetype-k6t-ensure-instance-type-and-preference-virtualmachine",
@@ -3736,22 +3168,6 @@
     "description": "Check the 'dataprotection' label for production Deployments and StatefulSet workloads. Use in combination with 'kasten-generate-example-backup-policy' policy to generate a Kasten policy for the workload namespace, if it doesn't already exist."
   },
   {
-    "id": "kyverno-kasten-generate-example-backup-policy-kasten-generate-example-backup-policy",
-    "name": "kyverno-kasten-generate-example-backup-policy-kasten-generate-example-backup-policy",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Generates a Kasten policy for a namespace that includes any Deployment or StatefulSet with a \"dataprotection=kasten-example\" label, if the policy does not already exist. This Kyverno policy can be used in combination with the \"kasten-data-protection-by-label\" policy to require \"dataprotection\" labeling on workloads."
-  },
-  {
-    "id": "kyverno-kasten-generate-policy-by-preset-label-kasten-generate-policy-by-preset-label",
-    "name": "kyverno-kasten-generate-policy-by-preset-label-kasten-generate-policy-by-preset-label",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Generates a Kasten policy for a new namespace that includes a valid \"dataprotection\" label, if the policy does not already exist. Use with \"kasten-validate-ns-by-preset-label\" policy to require \"dataprotection\" labeling on new namespaces."
-  },
-  {
     "id": "kyverno-kasten-hourly-rpo-kasten-hourly-rpo-config-kio-kasten-io-v1alpha1-policy",
     "name": "kyverno-kasten-hourly-rpo-kasten-hourly-rpo-config-kio-kasten-io-v1alpha1-policy",
     "layer": "cel",
@@ -3768,14 +3184,6 @@
     "description": "Ensure Kasten Location Profiles have enabled immutability to prevent unintentional or malicious changes to backup data."
   },
   {
-    "id": "kyverno-kasten-minimum-retention-kasten-minimum-retention",
-    "name": "kyverno-kasten-minimum-retention-kasten-minimum-retention",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Example Kyverno policy to enforce common compliance retention standards by modifying Kasten Policy backup retention settings. Based on regulation/compliance standard requirements, uncomment (1) of the desired GFS retention schedules to mutate existing and future Kasten Policies. Alternatively, this policy can be used to reduce retention lengths to enforce cost optimization. NOTE: This example only applies to Kasten Policies with an '@hourly' frequency. Refer to Kasten documentation for Policy API specification if modifications are necessary: https://docs.kasten.io/latest/api/policies.html#policy-api-type"
-  },
-  {
     "id": "kyverno-kasten-validate-ns-by-preset-label-kasten-validate-ns-by-preset-label-namespace",
     "name": "kyverno-kasten-validate-ns-by-preset-label-kasten-validate-ns-by-preset-label-namespace",
     "layer": "cel",
@@ -3790,46 +3198,6 @@
     "enabled": true,
     "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: Deployment\"))",
     "description": "Kubecost Enterprise allows users to define budgets for Namespaces and clusters as well as predict the cost of new Deployments based on historical cost data. By combining these abilities, users can achieve proactive cost controls for clusters with Kubecost installed by denying Deployments which would exceed the remaining configured monthly budget, if applicable. This policy checks for the creation of Deployments and compares the predicted cost of the Deployment to the remaining amount in the monthly budget, if one is found. If the predicted cost is greater than the remaining budget, the Deployment is denied. This policy requires Kubecost Enterprise at a version of 1.108 or greater."
-  },
-  {
-    "id": "kyverno-kubernetes-version-check-test-ver-ver",
-    "name": "kyverno-kubernetes-version-check-test-ver-ver",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "It is often needed to make decisions for resources based upon the version of the Kubernetes API server in the cluster. This policy serves as an example for how to retrieve the minor version of the Kubernetes API server and subsequently use in a policy behavior. It will mutate a Secret upon its creation with a label called `apiminorversion` the value of which is the minor version of the API server."
-  },
-  {
-    "id": "kyverno-label-existing-namespaces-label-existing-namespaces",
-    "name": "kyverno-label-existing-namespaces-label-existing-namespaces",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Namespaces which preexist may need to be labeled after the fact and it is time consuming to identify which ones should be labeled and either doing so manually or with a scripted approach. This policy, which triggers on any AdmissionReview request to any Namespace, will result in applying the label `mykey=myvalue` to all existing Namespaces. If this policy is updated to change the desired label key or value, it will cause another mutation which updates all Namespaces."
-  },
-  {
-    "id": "kyverno-label-nodes-all-label-node-foo",
-    "name": "kyverno-label-nodes-all-label-node-foo",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "label-nodes-all"
-  },
-  {
-    "id": "kyverno-label-nodes-cri-label-node-containerd",
-    "name": "kyverno-label-nodes-cri-label-node-containerd",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "CRI engines log in different formats. Loggers deployed as DaemonSets don't know which format to apply because they can't see this information. By Kyverno writing a label to each node with its runtime, loggers can use node label selectors to know which parsing logic to use. This policy detects the CRI engine in use and writes a label to the Node called `runtime` with it. The Node resource filter should be removed and users may need to grant the Kyverno ServiceAccount permission to update Nodes."
-  },
-  {
-    "id": "kyverno-label-nodes-cri-label-node-docker",
-    "name": "kyverno-label-nodes-cri-label-node-docker",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "CRI engines log in different formats. Loggers deployed as DaemonSets don't know which format to apply because they can't see this information. By Kyverno writing a label to each node with its runtime, loggers can use node label selectors to know which parsing logic to use. This policy detects the CRI engine in use and writes a label to the Node called `runtime` with it. The Node resource filter should be removed and users may need to grant the Kyverno ServiceAccount permission to update Nodes."
   },
   {
     "id": "kyverno-limit-containers-per-pod-limit-containers-per-pod-pod",
@@ -3856,22 +3224,6 @@
     "description": "hostPath volumes consume the underlying node's file system. If hostPath volumes are not to be universally disabled, they should be restricted to only certain host paths so as not to allow access to sensitive information. This policy ensures the only directory that can be mounted as a hostPath volume is /data. It is strongly recommended to pair this policy with a second to ensure readOnly access is enforced preventing directory escape."
   },
   {
-    "id": "kyverno-log4shell-mitigation-add-log4shell-mitigation-containers",
-    "name": "kyverno-log4shell-mitigation-add-log4shell-mitigation-containers",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "In response to CVE-2021-44228 referred to as Log4Shell, a RCE vulnerability in the Log4j library, a partial yet incomplete workaround for versions 2.10 to 2.14.1 of the library is to set the environment variable LOG4J_FORMAT_MSG_NO_LOOKUPS to \"true\". While this does provide some benefit by limiting exposure, there are still code paths which can exploit this vulnerability. It is highly recommended to upgrade log4j as soon as possible. See https://logging.apache.org/log4j/2.x/security.html for more details. This policy will mutate all initContainers and containers in an incoming Pod to add this environment variable automatically."
-  },
-  {
-    "id": "kyverno-log4shell-mitigation-add-log4shell-mitigation-initcontainers",
-    "name": "kyverno-log4shell-mitigation-add-log4shell-mitigation-initcontainers",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "In response to CVE-2021-44228 referred to as Log4Shell, a RCE vulnerability in the Log4j library, a partial yet incomplete workaround for versions 2.10 to 2.14.1 of the library is to set the environment variable LOG4J_FORMAT_MSG_NO_LOOKUPS to \"true\". While this does provide some benefit by limiting exposure, there are still code paths which can exploit this vulnerability. It is highly recommended to upgrade log4j as soon as possible. See https://logging.apache.org/log4j/2.x/security.html for more details. This policy will mutate all initContainers and containers in an incoming Pod to add this environment variable automatically."
-  },
-  {
     "id": "kyverno-memory-requests-equal-limits-memory-requests-equal-limits-pod",
     "name": "kyverno-memory-requests-equal-limits-memory-requests-equal-limits-pod",
     "layer": "cel",
@@ -3886,22 +3238,6 @@
     "enabled": true,
     "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: Pod\") \u0026\u0026 args.content.matches(\"(?s).*corp\\\\.org/version:\\\\s+[^\\\\n]*[^0-9a-zA-Z.\\\\-][^\\\\n]*.*\"))",
     "description": "Rather than a simple check to see if given metadata such as labels and annotations are present, in some cases they need to be present and the values match a specified regular expression. This policy illustrates how to ensure a label with key `corp.org/version` is both present and matches a given regex, in this case ensuring semver is met."
-  },
-  {
-    "id": "kyverno-mutate-pod-binding-project-foo",
-    "name": "kyverno-mutate-pod-binding-project-foo",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Containers running in Pods may sometimes need access to node-specific information on which the Pod has been scheduled. Scheduling decisions are made by kube-scheduler after the Pod has been persisted and so only at that time may the Node to which the Pod is bound can be fetched. The Kubernetes API allows specifically the projection of annotations from these Binding resources to the Pods which are their subject. This policy watches for then mutates the /binding subresource of a Pod to add an annotation named `foo` the value of which comes from the bound Node's label also called `foo`. Use of this policy may require removal of the Binding resourceFilter in Kyverno's ConfigMap."
-  },
-  {
-    "id": "kyverno-mutate-termination-grace-period-seconds-mutate-termination-grace-period-seconds",
-    "name": "kyverno-mutate-termination-grace-period-seconds-mutate-termination-grace-period-seconds",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Pods with large terminationGracePeriodSeconds (tGPS) might prevent cluster nodes from getting drained, ultimately making the whole cluster unstable. This policy mutates all incoming Pods to set their tGPS under 50s. If the user creates a pod without specifying tGPS, then the Kubernetes default of 30s is maintained."
   },
   {
     "id": "kyverno-namespace-inventory-check-networkpolicies-namespace",
@@ -3926,14 +3262,6 @@
     "enabled": true,
     "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: Namespace\") \u0026\u0026 (args.content.contains(\"freeze: \\\"true\\\"\") || args.content.contains(\"freeze: true\")))",
     "description": "Cases where RBAC may be applied at a higher level and where Namespace-level protections may be necessary can be accomplished with a separate policy. For example, one may want to protect creates, updates, and deletes on only a single Namespace. This policy will block creates, updates, and deletes to any Namespace labeled with `freeze=true`. Caution should be exercised when using rules which match on all kinds (`\"*\"`) as this will involve, for larger clusters, a substantial amount of processing on Kyverno's part. Additional resource requests and/or limits may be required."
-  },
-  {
-    "id": "kyverno-nfs-subdir-external-provisioner-storage-path-enforce-storage-path-persistentvolumeclaim",
-    "name": "kyverno-nfs-subdir-external-provisioner-storage-path-enforce-storage-path-persistentvolumeclaim",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"nfs-client\") \u0026\u0026 args.content.matches(\".*nfs\\\\.io/storage-path:\\\\s*[\\\"']{0,1}\\\\s*[\\\"']{0,1}\\\\s*$.*\"))",
-    "description": "The NFS subdir external provisioner project allows defining a StorageClass with a pathPattern, a template used to provision subdirectories on NFS exports. This can be controlled with an annotation on a PVC called `nfs.io/storage-path`. This policy ensures that if the StorageClass name `nfs-client` is used by a PVC, corresponding to the NFS subdir external provisioner, and if it sets the nfs.io/storage-path annotation that it cannot be empty, which may otherwise result in it consuming the root of the designated path."
   },
   {
     "id": "kyverno-no-loadbalancer-service-no-loadbalancer-service",
@@ -3982,14 +3310,6 @@
     "enabled": true,
     "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"secretName:\"))",
     "description": "Secrets often contain sensitive information which not all Pods need consume. This policy disables the use of all Secrets in a Pod definition. In order to work effectively, this Policy needs a separate Policy or rule to require `automountServiceAccountToken=false` at the Pod level or ServiceAccount level since this would otherwise result in a Secret being mounted."
-  },
-  {
-    "id": "kyverno-only-trustworthy-registries-set-root-only-allow-trusted-images-pod",
-    "name": "kyverno-only-trustworthy-registries-set-root-only-allow-trusted-images-pod",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"image:\") \u0026\u0026 !args.content.matches(\".*image:\\\\s+ghcr\\\\.io/.*\"))",
-    "description": "Some containers must be built to run as root in order to function properly, but use of those images should be carefully restricted to prevent unneeded privileges. This policy blocks any image that runs as root if it does not come from a trustworthy registry, `ghcr.io` in this case."
   },
   {
     "id": "kyverno-pdb-maxunavailable-pdb-maxunavailable-poddisruptionbudget",
@@ -4044,7 +3364,7 @@
     "name": "kyverno-podsecurity-subrule-restricted-capabilities-restricted-exempt-capabilities-pod",
     "layer": "cel",
     "enabled": true,
-    "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: Pod\") \u0026\u0026 (args.content.contains(\"privileged: true\") || args.content.contains(\"hostPID: true\") || args.content.contains(\"hostIPC: true\") || args.content.contains(\"hostNetwork: true\") || args.content.contains(\"allowPrivilegeEscalation: true\")))",
+    "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: Pod\") \u0026\u0026 (args.content.contains(\"privileged: true\") || args.content.contains(\"hostPID: true\") || args.content.contains(\"hostIPC: true\") || args.content.contains(\"hostNetwork: true\") || args.content.contains(\"allowPrivilegeEscalation: true\")) || (tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: Pod\") \u0026\u0026 args.content.contains(\"capabilities:\") \u0026\u0026 !args.content.matches(\".*image:\\\\s*(nginx|redis).*\"))",
     "description": "The restricted profile of the Pod Security Standards, which is inclusive of the baseline profile, is a collection of all the most common configurations that can be taken to secure Pods. Beginning with Kyverno 1.8, an entire profile may be assigned to the cluster through a single rule. In some cases, specific exemptions must be made on a per-control basis. This policy configures the restricted profile through the latest version of the Pod Security Standards cluster wide while exempting `nginx` and `redis` container images from the Capabilities control check."
   },
   {
@@ -4052,7 +3372,7 @@
     "name": "kyverno-podsecurity-subrule-restricted-restricted-pod",
     "layer": "cel",
     "enabled": true,
-    "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: Pod\") \u0026\u0026 (args.content.contains(\"privileged: true\") || args.content.contains(\"hostPID: true\") || args.content.contains(\"hostIPC: true\") || args.content.contains(\"hostNetwork: true\") || args.content.contains(\"allowPrivilegeEscalation: true\")))",
+    "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: Pod\") \u0026\u0026 (args.content.contains(\"privileged: true\") || args.content.contains(\"hostPID: true\") || args.content.contains(\"hostIPC: true\") || args.content.contains(\"hostNetwork: true\") || args.content.contains(\"allowPrivilegeEscalation: true\")) || (tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: Pod\") \u0026\u0026 !args.content.contains(\"runAsNonRoot: true\") \u0026\u0026 !args.content.contains(\"seccompProfile:\"))",
     "description": "The restricted profile of the Pod Security Standards, which is inclusive of the baseline profile, is a collection of all the most common configurations that can be taken to secure Pods. Beginning with Kyverno 1.8, an entire profile may be assigned to the cluster through a single rule. This policy configures the restricted profile through the latest version of the Pod Security Standards cluster wide."
   },
   {
@@ -4110,22 +3430,6 @@
     "enabled": true,
     "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: PolicyException\") \u0026\u0026 args.content.matches(\"(?s).*policyNames:\\\\s*\\n(\\\\s+-\\\\s+\\\\S+\\\\s*\\n){2,}.*\"))",
     "description": "A PolicyException grants the applicable resource(s) or subject(s) the ability to bypass an existing Kyverno policy. Care should be taken to ensure that the allowed PolicyExceptions are scoped fine enough and according to your organization's operation. This is a Kyverno policy intended to provide guardrails for Kyverno PolicyExceptions and contains a number of rules which may help with these scoping best practices. These rules may be changed/removed depending on the exception practices to be implemented."
-  },
-  {
-    "id": "kyverno-prepend-registry-prepend-registry-containers",
-    "name": "kyverno-prepend-registry-prepend-registry-containers",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Pulling images from outside registries may be undesirable due to untrustworthiness or simply because the traffic results in an excess of bandwidth usage. Instead of blocking them, they can be mutated to divert to an internal registry which may already contain them or function as a pull-through proxy. This policy prepends all images in both containers and initContainers to come from `registry.io`."
-  },
-  {
-    "id": "kyverno-prepend-registry-prepend-registry-initcontainers",
-    "name": "kyverno-prepend-registry-prepend-registry-initcontainers",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Pulling images from outside registries may be undesirable due to untrustworthiness or simply because the traffic results in an excess of bandwidth usage. Instead of blocking them, they can be mutated to divert to an internal registry which may already contain them or function as a pull-through proxy. This policy prepends all images in both containers and initContainers to come from `registry.io`."
   },
   {
     "id": "kyverno-prevent-bare-pods-bare-pods-pod",
@@ -4548,7 +3852,7 @@
     "name": "kyverno-require-qos-guaranteed-guaranteed-pod",
     "layer": "cel",
     "enabled": true,
-    "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: Pod\") \u0026\u0026 !(args.content.contains(\"requests:\") \u0026\u0026 args.content.contains(\"limits:\")))",
+    "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: Pod\") \u0026\u0026 !(args.content.contains(\"requests:\") \u0026\u0026 args.content.contains(\"limits:\")) || (tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"kind: Pod\") \u0026\u0026 args.content.contains(\"requests:\") \u0026\u0026 args.content.contains(\"limits:\"))",
     "description": "Pod Quality of Service (QoS) is a mechanism to ensure Pods receive certain priority guarantees based upon the resources they define. When Pods define both requests and limits for both memory and CPU, and the requests and limits are equal to each other, Kubernetes grants the QoS class as guaranteed which allows them to run at a higher priority than others. This policy requires that all containers within a Pod run with this definition resulting in a guaranteed QoS. This policy is provided with the intention that users will need to control its scope by using exclusions, preconditions, and other policy language mechanisms."
   },
   {
@@ -5336,22 +4640,6 @@
     "description": "Wildcards ('*') in verbs grants all access to the resources referenced by it and does not follow the principal of least privilege. As much as possible, avoid such open verbs unless scoped to perhaps a custom API group. This policy blocks any Role or ClusterRole that contains a wildcard entry in the verbs list found in any rule."
   },
   {
-    "id": "kyverno-scale-deployment-zero-annotate-deployment-rule",
-    "name": "kyverno-scale-deployment-zero-annotate-deployment-rule",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "If a Deployment's Pods are seen crashing multiple times it usually indicates there is an issue that must be manually resolved. Removing the failing Pods and marking the Deployment is often a useful troubleshooting step. This policy watches existing Pods and if any are observed to have restarted more than once, indicating a potential crashloop, Kyverno scales its parent deployment to zero and writes an annotation signaling to an SRE team that troubleshooting is needed. It may be necessary to grant additional privileges to the Kyverno ServiceAccount, via one of the existing ClusterRoleBindings or a new one, so it can modify Deployments. This policy scales down deployments with frequently restarting pods by monitoring `Pod.status` for `restartCount`updates, which are performed by the kubelet. No `resourceFilter` modifications are needed if matching on `Pod`and `Pod.status`. Note: For this policy to work, you must modify Kyverno's ConfigMap to remove or change the line `excludeGroups: system:nodes` since version 1.10."
-  },
-  {
-    "id": "kyverno-schedule-based-quotas-update-quotas-by-schedule",
-    "name": "kyverno-schedule-based-quotas-update-quotas-by-schedule",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Automatically adjusts resource quotas based on time schedules to optimize cloud costs. During non-business hours, the policy reduces resource quotas to prevent overprovisioning while ensuring essential services remain operational."
-  },
-  {
     "id": "kyverno-secrets-not-from-env-vars-secrets-not-from-env-vars-pod",
     "name": "kyverno-secrets-not-from-env-vars-secrets-not-from-env-vars-pod",
     "layer": "cel",
@@ -5384,52 +4672,12 @@
     "description": "This policy is a variation of the Require runAsNonRoot policy that is a part of the Pod Security Standards (Restricted) category. It enforces the same control but with provisions for Istio's initContainer. For more information and context, see the Kyverno blog post at https://kyverno.io/blog/2024/02/04/securing-services-meshes-easier-with-kyverno/."
   },
   {
-    "id": "kyverno-set-karpenter-non-cpu-limits-set-ephemeral-storage",
-    "name": "kyverno-set-karpenter-non-cpu-limits-set-ephemeral-storage",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "For correct node provisioning Karpenter should know exactly what the non-CPU resources are that the pods will need. Otherwise Karpenter will put as many pods on a node as possible, which may lead to memory pressure on nodes. This is especially important in consolidation mode."
-  },
-  {
-    "id": "kyverno-set-karpenter-non-cpu-limits-set-memory",
-    "name": "kyverno-set-karpenter-non-cpu-limits-set-memory",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "For correct node provisioning Karpenter should know exactly what the non-CPU resources are that the pods will need. Otherwise Karpenter will put as many pods on a node as possible, which may lead to memory pressure on nodes. This is especially important in consolidation mode."
-  },
-  {
-    "id": "kyverno-signed-pipeline-bundle-check-signature",
-    "name": "kyverno-signed-pipeline-bundle-check-signature",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "A signed bundle is required"
-  },
-  {
-    "id": "kyverno-signed-tekton-task-bundle-check-signature",
-    "name": "kyverno-signed-tekton-task-bundle-check-signature",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "A signed bundle is required."
-  },
-  {
     "id": "kyverno-spread-pods-spread-pods-across-nodes",
     "name": "kyverno-spread-pods-spread-pods-across-nodes",
     "layer": "cel",
     "enabled": true,
     "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 (args.content.contains(\"kind: Deployment\") || args.content.contains(\"kind: StatefulSet\")) \u0026\u0026 args.content.contains(\"distributed: required\") \u0026\u0026 !args.content.contains(\"topologySpreadConstraints:\"))",
     "description": "Deployments to a Kubernetes cluster with multiple availability zones often need to distribute those replicas to align with those zones to ensure site-level failures do not impact availability. This policy matches Deployments with the label `distributed=required` and mutates them to spread Pods across zones."
-  },
-  {
-    "id": "kyverno-sync-secrets-sync-image-pull-secret",
-    "name": "kyverno-sync-secrets-sync-image-pull-secret",
-    "layer": "cel",
-    "enabled": true,
-    "cel_expression": "!(false)",
-    "description": "Secrets like registry credentials often need to exist in multiple Namespaces so Pods there have access. Manually duplicating those Secrets is time consuming and error prone. This policy will copy a Secret called `regcred` which exists in the `default` Namespace to new Namespaces when they are created. It will also push updates to the copied Secrets should the source Secret be changed."
   },
   {
     "id": "kyverno-team-validate-ns-name-team-validate-ns-name-namespace",
@@ -5824,6 +5072,14 @@
     "description": "Disallowed container repositories that begin with a string from the specified list."
   },
   {
+    "id": "gatekeeper-k8sdisallowedtags",
+    "name": "gatekeeper-k8sdisallowedtags",
+    "layer": "cel",
+    "enabled": true,
+    "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.matches(\".*image:.*:latest.*\"))",
+    "description": "Requires container images to have an image tag different from the ones in the specified list.\nhttps://kubernetes.io/docs/concepts/containers/images/#image-names"
+  },
+  {
     "id": "gatekeeper-k8sdisallowinteractivetty",
     "name": "gatekeeper-k8sdisallowinteractivetty",
     "layer": "cel",
@@ -5950,6 +5206,14 @@
     "enabled": true,
     "cel_expression": "!((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 (args.content.contains(\"hostPID: true\") || args.content.contains(\"hostIPC: true\")))",
     "description": "Disallows sharing of host PID and IPC namespaces by pod containers. Corresponds to the `hostPID` and `hostIPC` fields in a PodSecurityPolicy. For more information, see https://kubernetes.io/docs/concepts/policy/pod-security-policy/#host-namespaces"
+  },
+  {
+    "id": "gatekeeper-k8spsphostnetworkingports",
+    "name": "gatekeeper-k8spsphostnetworkingports",
+    "layer": "cel",
+    "enabled": true,
+    "cel_expression": "!(((tool == \"Write\" || tool == \"Edit\") \u0026\u0026 args.path.matches(\".*\\\\.(yaml|yml|json)$\") \u0026\u0026 args.content.contains(\"hostNetwork: true\")) || (tool == \"Bash\" \u0026\u0026 args[\"command\"].contains(\"--host-network\")))",
+    "description": "Controls usage of host network namespace by pod containers. HostNetwork verification happens without exception for exemptImages. Specific ports must be specified. Corresponds to the `hostNetwork` and `hostPorts` fields in a PodSecurityPolicy. For more information, see https://kubernetes.io/docs/concepts/policy/pod-security-policy/#host-namespaces"
   },
   {
     "id": "gatekeeper-k8spsphostprobeslifecycle",

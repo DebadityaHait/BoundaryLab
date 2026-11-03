@@ -180,8 +180,8 @@ type catalogEntry struct {
 // ---- output structs ----
 
 type boundarylabManifest struct {
-	APIVersion string          `yaml:"apiVersion"`
-	Kind       string          `yaml:"kind"`
+	APIVersion string                `yaml:"apiVersion"`
+	Kind       string                `yaml:"kind"`
 	Metadata   boundarylabMetadata   `yaml:"metadata"`
 	Spec       boundarylabPolicySpec `yaml:"spec"`
 }
@@ -192,10 +192,10 @@ type boundarylabMetadata struct {
 }
 
 type boundarylabPolicySpec struct {
-	Description      string                `yaml:"description"`
+	Description      string                      `yaml:"description"`
 	MatchConstraints boundarylabMatchConstraints `yaml:"matchConstraints"`
 	Validations      []boundarylabValidation     `yaml:"validations"`
-	DefaultAction    string                `yaml:"defaultAction,omitempty"`
+	DefaultAction    string                      `yaml:"defaultAction,omitempty"`
 }
 
 type boundarylabMatchConstraints struct {
@@ -495,6 +495,9 @@ func runImport(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	if err := ensureCompleteImport(manifests, comments); err != nil {
+		return err
+	}
 	if err := writeManifests(cmd, manifests, comments, source); err != nil {
 		return err
 	}
@@ -520,12 +523,18 @@ func runImportGitHub(cmd *cobra.Command, source string) error {
 	for _, path := range paths {
 		data, err := os.ReadFile(path)
 		if err != nil {
-			continue
+			return fmt.Errorf("read %s: %w", path, err)
 		}
 		detectedFormat := detectFormatWithName(path, data)
-		manifests, comments, err := convertFile(data, path)
-		if err != nil || len(manifests) == 0 {
+		if detectedFormat == formatUnknown {
 			continue
+		}
+		manifests, comments, err := convertFile(data, path)
+		if err != nil {
+			return fmt.Errorf("convert %s: %w", path, err)
+		}
+		if len(manifests) == 0 {
+			return fmt.Errorf("no policies converted from %s", path)
 		}
 		manifests, comments = applyLLMAssist(cmd.Context(), manifests, comments, importFormatName(detectedFormat))
 		allManifests = append(allManifests, manifests...)
@@ -546,10 +555,33 @@ func runImportGitHub(cmd *cobra.Command, source string) error {
 		return nil
 	}
 
+	if err := ensureCompleteImport(allManifests, allComments); err != nil {
+		return err
+	}
 	if err := writeManifests(cmd, allManifests, allComments, source); err != nil {
 		return err
 	}
 	_, _ = fmt.Fprintf(cmd.OutOrStdout(), "imported %d policies from %d files\n", len(allManifests), fileCount)
+	return nil
+}
+
+// Reject incomplete translations before writing policies. Dry runs remain available for review.
+func ensureCompleteImport(manifests []boundarylabManifest, comments []string) error {
+	if len(manifests) == 0 {
+		return fmt.Errorf("no policies converted; nothing can be safely imported")
+	}
+	for _, comment := range comments {
+		if strings.Contains(comment, "IMPORT_TODO") || strings.Contains(comment, "IMPORT_REVIEW") {
+			return fmt.Errorf("policy conversion requires manual review; use --dry-run and author complete policies before importing")
+		}
+	}
+	for _, manifest := range manifests {
+		for _, validation := range manifest.Spec.Validations {
+			if strings.Contains(validation.Message, "IMPORT_TODO") || strings.Contains(validation.Message, "IMPORT_REVIEW") {
+				return fmt.Errorf("policy %q requires manual review and cannot be imported automatically", manifest.Metadata.Name)
+			}
+		}
+	}
 	return nil
 }
 
@@ -1047,12 +1079,8 @@ func convertMCPVisor(data []byte, sourcePath string) ([]boundarylabManifest, []s
 		comments = append(comments, "")
 	}
 
-	// max_file_size and max_rows are skipped — no CEL function available
-	if file.MaxFileSize > 0 {
-		comments = appendSkipComment(comments, "IMPORT_TODO: max_file_size constraint skipped — no file size CEL function currently available")
-	}
-	if file.MaxRows > 0 {
-		comments = appendSkipComment(comments, "IMPORT_TODO: max_rows constraint skipped — no row count CEL function currently available")
+	if file.MaxFileSize > 0 || file.MaxRows > 0 {
+		return nil, nil, fmt.Errorf("max_file_size and max_rows constraints cannot be translated safely")
 	}
 
 	return manifests, comments, nil

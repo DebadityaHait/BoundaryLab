@@ -11,7 +11,7 @@ import (
 
 // GenericAdapter is the fallback adapter for unknown IDEs.
 // It accepts any JSON with "tool_name" or "tool" field and uses best-effort parsing.
-// Output uses the Claude Code format (most informative) with exit code 0.
+// Output uses the Claude Code format. Denials and approval requests exit nonzero.
 type GenericAdapter struct{}
 
 // genericInput supports various tool name field conventions.
@@ -41,7 +41,7 @@ func (g *genericInput) resolveArgs() json.RawMessage {
 	if len(g.Args) > 0 && string(g.Args) != "null" {
 		return g.Args
 	}
-	return json.RawMessage("{}")
+	return nil
 }
 
 func (a *GenericAdapter) Name() string { return "generic" }
@@ -89,21 +89,25 @@ func (a *GenericAdapter) FormatOutput(resp boundarylab.CheckResponse, _ json.Raw
 	out := ClaudeCodeHookOutput{HookSpecificOutput: specific}
 	b, err := json.Marshal(out)
 	if err != nil {
-		return []byte(`{"hookSpecificOutput":{"permissionDecision":"allow"}}` + "\n"), 0
+		return []byte(`{"hookSpecificOutput":{"permissionDecision":"deny"}}` + "\n"), 2
 	}
-	return append(b, '\n'), 0
+	exitCode := 0
+	if specific.PermissionDecision != "allow" {
+		exitCode = 2
+	}
+	return append(b, '\n'), exitCode
 }
 
-func (a *GenericAdapter) FormatFailOpen(reason string, _ json.RawMessage) ([]byte, int) {
+func (a *GenericAdapter) FormatFailClosed(reason string, _ json.RawMessage) ([]byte, int) {
 	out := ClaudeCodeHookOutput{
 		HookSpecificOutput: ClaudeCodeHookSpecific{
-			PermissionDecision:       "allow",
-			PermissionDecisionReason: fmt.Sprintf("fail-open: %s", reason),
+			PermissionDecision:       "deny",
+			PermissionDecisionReason: fmt.Sprintf("fail-closed: %s", reason),
 		},
 	}
 	b, err := json.Marshal(out)
 	if err != nil {
-		return []byte(`{"hookSpecificOutput":{"permissionDecision":"allow"}}` + "\n"), 0
+		return []byte(`{"hookSpecificOutput":{"permissionDecision":"deny"}}` + "\n"), 2
 	}
-	return append(b, '\n'), 0
+	return append(b, '\n'), 2
 }

@@ -201,7 +201,7 @@ The daemon watches the policy directory using `fsnotify`. When you save a policy
 3. New policy snapshot atomically swapped in (via `atomic.Pointer.Store()`)
 4. In-flight evaluations complete against the old snapshot — no request is ever evaluated against a partially-loaded state
 
-**If a reload fails** (invalid YAML, CEL syntax error), the previous valid snapshot is retained. The daemon logs the error but continues serving with the last-known-good policies.
+**If a reload fails** (invalid YAML or a CEL error), the active snapshot is invalidated and requests are denied until the policy set is corrected.
 
 ## Policy Bundles
 

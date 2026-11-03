@@ -87,6 +87,12 @@ make build
 
 To install the binaries, policies, service, and agent hook into the current user's environment, run `make install`. Review the options with `./bin/boundarylab setup --help` first. Configuration examples live in [.env.example](.env.example) and [policies/](policies/).
 
+## Enforcement and recovery
+
+The hook denies tool requests when the daemon is unavailable or input cannot be evaluated. Invalid or missing argument objects, unregistered tool schemas, policy parsing failures, and CEL compilation or evaluation errors are also denied. This includes custom or MCP tools until an argument schema is registered in `internal/classify/argschema.go`.
+
+Run `boundarylab doctor` and restore the daemon or correct the policy before retrying. Hook failures are recorded in `~/.boundarylab/failclosed.log` when the log is writable; set `BOUNDARYLAB_FAILCLOSED_LOG` to choose another location. A failed policy reload invalidates the active policy snapshot and blocks requests until a valid policy set is loaded. In a policy containing both deny and approval conditions, matches to either are denied. The MCP proxy blocks methods outside its supported protocol and tool-call paths, and blocks responses that cannot be scanned or contain detected secrets. Incomplete audit-only translations are kept in [examples/untranslated-policies/](examples/untranslated-policies/) and are not active protections.
+
 ## How it works
 
 ```text

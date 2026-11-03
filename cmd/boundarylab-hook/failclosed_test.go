@@ -9,12 +9,12 @@ import (
 	"time"
 )
 
-func TestHook_AllowWithWarning_WritesLog(t *testing.T) {
+func TestHook_FailClosed_WritesLog(t *testing.T) {
 	dir := t.TempDir()
-	logPath := filepath.Join(dir, "failopen.log")
+	logPath := filepath.Join(dir, "failclosed.log")
 
 	now := time.Now()
-	entry := FailOpenEntry{
+	entry := FailClosedEntry{
 		Ts:               now,
 		Tool:             "Bash",
 		SessionID:        "sess-123",
@@ -22,8 +22,8 @@ func TestHook_AllowWithWarning_WritesLog(t *testing.T) {
 		DeadlineExceeded: false,
 	}
 
-	if err := writeFailOpen(logPath, entry); err != nil {
-		t.Fatalf("writeFailOpen: %v", err)
+	if err := writeFailClosed(logPath, entry); err != nil {
+		t.Fatalf("writeFailClosed: %v", err)
 	}
 
 	data, err := os.ReadFile(logPath)
@@ -31,7 +31,7 @@ func TestHook_AllowWithWarning_WritesLog(t *testing.T) {
 		t.Fatalf("reading log: %v", err)
 	}
 
-	var got FailOpenEntry
+	var got FailClosedEntry
 	if err := json.Unmarshal(bytes.TrimSpace(data), &got); err != nil {
 		t.Fatalf("invalid JSON in log: %v\ncontents: %s", err, data)
 	}
@@ -50,14 +50,14 @@ func TestHook_AllowWithWarning_WritesLog(t *testing.T) {
 	}
 
 	// Verify append: write a second entry and check both lines are present.
-	entry2 := FailOpenEntry{
+	entry2 := FailClosedEntry{
 		Ts:        time.Now(),
 		Tool:      "Write",
 		SessionID: "sess-456",
 		Reason:    "evaluation timeout",
 	}
-	if err := writeFailOpen(logPath, entry2); err != nil {
-		t.Fatalf("second writeFailOpen: %v", err)
+	if err := writeFailClosed(logPath, entry2); err != nil {
+		t.Fatalf("second writeFailClosed: %v", err)
 	}
 
 	data2, _ := os.ReadFile(logPath)

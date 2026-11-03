@@ -79,8 +79,8 @@ type ClaudeCodeHookSpecific struct {
 	PermissionDecisionReason string `json:"permissionDecisionReason,omitempty"`
 }
 
-// FailOpenEntry is appended to BOUNDARYLAB_FAILOPEN_LOG when the hook fails open.
-type FailOpenEntry struct {
+// FailClosedEntry is appended to BOUNDARYLAB_FAILCLOSED_LOG when the hook fails closed.
+type FailClosedEntry struct {
 	Ts               time.Time `json:"ts"`
 	SessionID        string    `json:"session_id"`
 	Tool             string    `json:"tool"`
@@ -113,11 +113,12 @@ func main() {
 	// Step 1: Read raw stdin.
 	rawInput, err := readStdin(deadline)
 	if err != nil {
-		// No adapter yet — use generic fail-open format.
-		stdout, _ := (&GenericAdapter{}).FormatFailOpen("stdin_read_error", nil)
-		_, _ = os.Stdout.Write(stdout)
-		logFailOpen("stdin_read_error", "", nil, false)
-		os.Exit(0)
+		// No adapter yet — use generic fail-closed format.
+		stdout, _ := (&GenericAdapter{}).FormatFailClosed("stdin_read_error", nil)
+		writeHookOutput(stdout)
+		logFailClosed("stdin_read_error", "", "", nil, false)
+		fmt.Fprintln(os.Stderr, "BoundaryLab blocked the request: unable to read hook input")
+		os.Exit(2)
 	}
 
 	// Step 2: Detect adapter from raw input.
@@ -126,10 +127,14 @@ func main() {
 	// Step 3: Parse input into CheckRequest.
 	req, err := adapter.ParseInput(rawInput)
 	if err != nil {
-		stdout, _ := adapter.FormatFailOpen("parse_error", rawInput)
-		_, _ = os.Stdout.Write(stdout)
-		logFailOpen("parse_error", "", nil, false)
-		os.Exit(0)
+		stdout, exitCode := adapter.FormatFailClosed("parse_error", rawInput)
+		writeHookOutput(stdout)
+		logFailClosed("parse_error", "", "", nil, false)
+		if adapter.Name() == "generic" {
+			fmt.Fprintln(os.Stderr, "BoundaryLab blocked the request: invalid hook input")
+			os.Exit(2)
+		}
+		os.Exit(exitCode)
 	}
 
 	// Populate timing.
@@ -138,9 +143,9 @@ func main() {
 	// Step 4: Connect to daemon socket.
 	conn, err := dialSocket(sock, deadline)
 	if err != nil {
-		stdout, exitCode := adapter.FormatFailOpen("daemon_unreachable", rawInput)
-		_, _ = os.Stdout.Write(stdout)
-		logFailOpen("daemon_unreachable", req.Tool, req.Args, time.Now().After(deadline))
+		stdout, exitCode := adapter.FormatFailClosed("daemon_unreachable", rawInput)
+		writeHookOutput(stdout)
+		logFailClosed("daemon_unreachable", req.SessionID, req.Tool, req.Args, time.Now().After(deadline))
 		os.Exit(exitCode)
 	}
 	defer func() { _ = conn.Close() }()
@@ -148,40 +153,49 @@ func main() {
 	// Step 5: Serialize and send the CheckRequest.
 	reqBytes, err := json.Marshal(req)
 	if err != nil {
-		stdout, exitCode := adapter.FormatFailOpen("marshal_error", rawInput)
-		_, _ = os.Stdout.Write(stdout)
-		logFailOpen("marshal_error", req.Tool, req.Args, false)
+		stdout, exitCode := adapter.FormatFailClosed("marshal_error", rawInput)
+		writeHookOutput(stdout)
+		logFailClosed("marshal_error", req.SessionID, req.Tool, req.Args, false)
 		os.Exit(exitCode)
 	}
 
 	if err := writeFramed(conn, reqBytes, deadline); err != nil {
-		stdout, exitCode := adapter.FormatFailOpen("send_error", rawInput)
-		_, _ = os.Stdout.Write(stdout)
-		logFailOpen("send_error", req.Tool, req.Args, time.Now().After(deadline))
+		stdout, exitCode := adapter.FormatFailClosed("send_error", rawInput)
+		writeHookOutput(stdout)
+		logFailClosed("send_error", req.SessionID, req.Tool, req.Args, time.Now().After(deadline))
 		os.Exit(exitCode)
 	}
 
 	// Step 6: Receive CheckResponse.
 	respBytes, err := readFramed(conn, deadline)
 	if err != nil {
-		stdout, exitCode := adapter.FormatFailOpen("recv_error", rawInput)
-		_, _ = os.Stdout.Write(stdout)
-		logFailOpen("recv_error", req.Tool, req.Args, time.Now().After(deadline))
+		stdout, exitCode := adapter.FormatFailClosed("recv_error", rawInput)
+		writeHookOutput(stdout)
+		logFailClosed("recv_error", req.SessionID, req.Tool, req.Args, time.Now().After(deadline))
 		os.Exit(exitCode)
 	}
 
 	var resp boundarylab.CheckResponse
 	if err := json.Unmarshal(respBytes, &resp); err != nil {
-		stdout, exitCode := adapter.FormatFailOpen("response_parse_error", rawInput)
-		_, _ = os.Stdout.Write(stdout)
-		logFailOpen("response_parse_error", req.Tool, req.Args, false)
+		stdout, exitCode := adapter.FormatFailClosed("response_parse_error", rawInput)
+		writeHookOutput(stdout)
+		logFailClosed("response_parse_error", req.SessionID, req.Tool, req.Args, false)
 		os.Exit(exitCode)
 	}
 
 	// Step 7: Format IDE-specific output and exit.
 	stdout, exitCode := adapter.FormatOutput(resp, rawInput)
-	_, _ = os.Stdout.Write(stdout)
+	writeHookOutput(stdout)
 	os.Exit(exitCode)
+}
+
+// writeHookOutput must not report success when the host did not receive a denial.
+func writeHookOutput(output []byte) {
+	n, err := os.Stdout.Write(output)
+	if err != nil || n != len(output) {
+		fmt.Fprintln(os.Stderr, "BoundaryLab could not deliver the decision; request blocked")
+		os.Exit(2)
+	}
 }
 
 // buildCheckRequest constructs a CheckRequest from parsed HookInput.
@@ -222,13 +236,14 @@ func translateToClaudeCode(resp boundarylab.CheckResponse, eventName string) Cla
 	return ClaudeCodeHookOutput{HookSpecificOutput: specific}
 }
 
-// logFailOpen records a fail-open event to the log file and increments the OTel counter.
-func logFailOpen(reason, tool string, args json.RawMessage, deadlineExceeded bool) {
-	otel.InstrumentFailOpen().Add(context.Background(), 1)
+// logFailClosed records a fail-closed event to the log file and increments the OTel counter.
+func logFailClosed(reason, sessionID, tool string, args json.RawMessage, deadlineExceeded bool) {
+	otel.InstrumentFailClosed().Add(context.Background(), 1)
 
-	entry := FailOpenEntry{
+	entry := FailClosedEntry{
 		Ts:               time.Now(),
 		Tool:             tool,
+		SessionID:        sessionID,
 		Reason:           reason,
 		DeadlineExceeded: deadlineExceeded,
 	}
@@ -236,7 +251,9 @@ func logFailOpen(reason, tool string, args json.RawMessage, deadlineExceeded boo
 		h := sha256.Sum256(args)
 		entry.ArgsHash = "sha256:" + hex.EncodeToString(h[:])
 	}
-	_ = writeFailOpen(failOpenLogPath(), entry)
+	if err := writeFailClosed(failClosedLogPath(), entry); err != nil {
+		fmt.Fprintf(os.Stderr, "boundarylab-hook: cannot record blocked request: %v\n", err)
+	}
 }
 
 // socketPath returns the daemon Unix socket path.
@@ -250,16 +267,16 @@ func socketPath() string {
 	return "/tmp/boundarylab.sock"
 }
 
-// failOpenLogPath returns the fail-open log path.
-func failOpenLogPath() string {
-	if v := os.Getenv("BOUNDARYLAB_FAILOPEN_LOG"); v != "" {
+// failClosedLogPath returns the fail-closed log path.
+func failClosedLogPath() string {
+	if v := os.Getenv("BOUNDARYLAB_FAILCLOSED_LOG"); v != "" {
 		return v
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return "/tmp/boundarylab-failopen.log"
+		return "/tmp/boundarylab-failclosed.log"
 	}
-	return home + "/.boundarylab/failopen.log"
+	return home + "/.boundarylab/failclosed.log"
 }
 
 // readStdin reads all of stdin up to boundarylab.MaxMessageSize before the deadline.

@@ -6,7 +6,7 @@
 //
 // Usage:
 //
-//	boundarylab-daemon [-socket PATH] [-policy-dir DIR] [-audit-db PATH] [-failopen-log PATH]
+//	boundarylab-daemon [-socket PATH] [-policy-dir DIR] [-audit-db PATH] [-failclosed-log PATH]
 //
 // The gRPC ext_authz listener address is configured via the BOUNDARYLAB_GRPC_ADDR environment
 // variable. The stream/WebSocket server address defaults to :9090 and can be overridden
@@ -53,10 +53,10 @@ const (
 
 func main() {
 	var (
-		socketPath  = flag.String("socket", "", "Unix socket path (default: $BOUNDARYLAB_SOCKET_PATH or /tmp/boundarylab.sock)")
-		policyDir   = flag.String("policy-dir", "policies", "Policy YAML directory (recursively loads all subdirectories)")
-		auditDB     = flag.String("audit-db", "~/.boundarylab/audit.db", "Audit SQLite database path")
-		failOpenLog = flag.String("failopen-log", "", "Fail-open log path (default: $BOUNDARYLAB_FAILOPEN_LOG or ~/.boundarylab/failopen.log)")
+		socketPath    = flag.String("socket", "", "Unix socket path (default: $BOUNDARYLAB_SOCKET_PATH or /tmp/boundarylab.sock)")
+		policyDir     = flag.String("policy-dir", "policies", "Policy YAML directory (recursively loads all subdirectories)")
+		auditDB       = flag.String("audit-db", "~/.boundarylab/audit.db", "Audit SQLite database path")
+		failClosedLog = flag.String("failclosed-log", "", "Fail-closed log path (default: $BOUNDARYLAB_FAILCLOSED_LOG or ~/.boundarylab/failclosed.log)")
 	)
 	flag.Parse()
 
@@ -68,10 +68,10 @@ func main() {
 	defer func() { _ = pidLock.Unlock() }()
 
 	cfg := daemon.Config{
-		SocketPath:  *socketPath,
-		PolicyDir:   *policyDir,
-		AuditDBPath: expandHome(*auditDB),
-		FailOpenLog: *failOpenLog,
+		SocketPath:    *socketPath,
+		PolicyDir:     *policyDir,
+		AuditDBPath:   expandHome(*auditDB),
+		FailClosedLog: *failClosedLog,
 	}
 
 	otelCfg := otel.Config{
@@ -108,10 +108,25 @@ func main() {
 		os.Exit(exitStartupFailure)
 	}
 
+	// Create a delegation engine with an ephemeral key so the HTTP API is
+	// available from startup. Chains are registered by the policy engine at
+	// runtime. Only tokens verified by this key can be accepted by the evaluator.
+	delegPub, _, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "boundarylab-daemon: failed to generate ephemeral delegation key: %v\n", err)
+		os.Exit(exitStartupFailure)
+	}
+	delegEngine, err := delegation.New(delegPub)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "boundarylab-daemon: failed to create delegation engine: %v\n", err)
+		os.Exit(exitStartupFailure)
+	}
+
 	engine := policy.NewPolicyEngine(
 		sessions,
 		celEnv,
 		policy.WithSecretScanner(secret.NewScanner()),
+		policy.WithDelegationValidator(delegEngine),
 		policy.WithLabeler(label.NewLabeler()),
 	)
 
@@ -134,15 +149,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "boundarylab-daemon: failed to load initial policies: %v\n", err)
 		} else {
 			initialPolicyCount = len(templates)
-			// engine.Reload calls cel.CompileAll internally; skipped policies are
-			// logged at WARN level by CompileAll itself. Emit a startup summary here
-			// so operators see the active count without reading through log lines.
-			if skipped := engine.SkippedPolicies(); len(skipped) > 0 {
-				fmt.Fprintf(os.Stderr, "boundarylab-daemon: WARNING: %d polic(ies) inactive — undeclared CEL variables: %v\n", len(skipped), skipped)
-				fmt.Fprintf(os.Stderr, "boundarylab-daemon: Active policies: %d of %d loaded\n", initialPolicyCount-len(skipped), initialPolicyCount)
-			} else {
-				fmt.Fprintf(os.Stderr, "boundarylab-daemon: loaded %d policies from %s\n", initialPolicyCount, cfg.PolicyDir)
-			}
+			fmt.Fprintf(os.Stderr, "boundarylab-daemon: loaded %d policies from %s\n", initialPolicyCount, cfg.PolicyDir)
 		}
 	}
 	if grpcAddr := os.Getenv("BOUNDARYLAB_GRPC_ADDR"); grpcAddr != "" {
@@ -242,21 +249,6 @@ func main() {
 		streamSrv.EmitBundleActivated(ctx, 1, "", initialPolicyCount, false)
 	}
 
-	// Create a delegation engine with an ephemeral key so the HTTP API is
-	// available from startup. Chains are registered by the policy engine at
-	// runtime; the ephemeral key is only needed to satisfy the constructor
-	// (it is never used to sign or verify tokens in this context).
-	delegPub, _, err := ed25519.GenerateKey(nil)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "boundarylab-daemon: failed to generate ephemeral delegation key: %v\n", err)
-		os.Exit(exitStartupFailure)
-	}
-	delegEngine, err := delegation.New(delegPub)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "boundarylab-daemon: failed to create delegation engine: %v\n", err)
-		os.Exit(exitStartupFailure)
-	}
-
 	delegEngine.SetEmitFn(func(eventType, chainID, reason string) {
 		streamSrv.Emit(ctx, boundarylab.StreamEvent{
 			Type:      eventType,
@@ -285,9 +277,12 @@ type policyReloader struct {
 	ctx       context.Context
 }
 
+func (r *policyReloader) Invalidate() { r.engine.Invalidate() }
+
 func (r *policyReloader) Reload() error {
 	templates, bindings, err := bundle.ParsePolicyDir(r.policyDir)
 	if err != nil {
+		r.engine.Invalidate()
 		return err
 	}
 	compiled := &boundarylab.CompiledBundle{

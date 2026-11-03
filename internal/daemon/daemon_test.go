@@ -253,7 +253,7 @@ func TestDaemon_MaxMessageSize(t *testing.T) {
 	}
 }
 
-func TestDaemon_FailOpenReconcile(t *testing.T) {
+func TestDaemon_FailClosedReconcile(t *testing.T) {
 	// nilSnapshotEngine returns Deny — verifies fail-secure when no snapshot is loaded.
 	d, ready := startDaemon(t, nilSnapshotEngine{})
 	waitReady(t, ready)

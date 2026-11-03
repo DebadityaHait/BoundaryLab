@@ -3,11 +3,11 @@ package cel
 
 import (
 	"errors"
-	"log"
+	"strings"
 
+	policy_types "boundarylab.local/boundarylab/pkg/policy/types"
 	celgo "github.com/google/cel-go/cel"
 	"github.com/google/cel-go/checker"
-	policy_types "boundarylab.local/boundarylab/pkg/policy/types"
 )
 
 // programMeta carries a pointer to a compiled program and source location metadata.
@@ -94,18 +94,23 @@ type SkippedPolicy struct {
 // Fail-closed: on the first compile failure, returns an error with policy ID and
 // source location. The caller retains the previous EngineSnapshot.
 //
-// Skipped returns policies that were skipped because their expressions reference
-// undeclared CEL variables or functions. Skipping is not an error — the caller should
-// log the skipped IDs so operators know which policies are inactive. Callers must
-// inspect SkippedPolicy.DefaultAction: if "DENY", refuse to load the bundle.
+// All type-check failures are errors; the skipped return remains for API compatibility.
 func CompileAll(env *CELEnvironment, templates []policy_types.PolicyTemplate) (*ProgramCache, []SkippedPolicy, error) {
 	cache := &ProgramCache{
 		programs: make(map[string]programMeta, len(templates)),
 	}
 	var skipped []SkippedPolicy
+	seen := make(map[string]struct{}, len(templates))
 
 	for i := range templates {
 		t := &templates[i]
+		if strings.TrimSpace(t.ID) == "" {
+			return nil, nil, &CompileError{PolicyID: t.ID, SourceFile: t.SourceFile, SourceLine: t.SourceLine, Cause: errors.New("policy ID is empty")}
+		}
+		if _, exists := seen[t.ID]; exists {
+			return nil, nil, &CompileError{PolicyID: t.ID, SourceFile: t.SourceFile, SourceLine: t.SourceLine, Cause: errors.New("duplicate policy ID")}
+		}
+		seen[t.ID] = struct{}{}
 		if len(t.Expression) > maxExpressionLength {
 			return nil, nil, &CompileError{
 				PolicyID:   t.ID,
@@ -126,16 +131,10 @@ func CompileAll(env *CELEnvironment, templates []policy_types.PolicyTemplate) (*
 			}
 		}
 
-		// Phase 2: type-check — skip policies referencing undeclared variables or functions.
+		// Reject type errors: an inactive policy must never be silently skipped.
 		ast, checkIssues := env.env.Check(parsedAst)
 		if checkIssues != nil && checkIssues.Err() != nil {
-			log.Printf("WARN: policy %q skipped — undeclared CEL variable or function in expression %q: %v. Register missing functions in Phase 2 to activate this policy.", t.ID, t.Expression, checkIssues.Err())
-			skipped = append(skipped, SkippedPolicy{
-				TemplateID:    t.ID,
-				DefaultAction: t.DefaultAction,
-				CompileErr:    checkIssues.Err(),
-			})
-			continue
+			return nil, nil, &CompileError{PolicyID: t.ID, SourceFile: t.SourceFile, SourceLine: t.SourceLine, Cause: checkIssues.Err()}
 		}
 
 		// Enforce AST depth limit at compile time.

@@ -12,9 +12,10 @@ import (
 )
 
 type mockReloader struct {
-	mu      sync.Mutex
-	count   int
-	failErr error
+	mu          sync.Mutex
+	count       int
+	failErr     error
+	invalidated bool
 }
 
 func (m *mockReloader) Reload() error {
@@ -22,6 +23,12 @@ func (m *mockReloader) Reload() error {
 	defer m.mu.Unlock()
 	m.count++
 	return m.failErr
+}
+
+func (m *mockReloader) Invalidate() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.invalidated = true
 }
 
 func (m *mockReloader) reloadCount() int {
@@ -233,5 +240,21 @@ func TestReload_SubdirectoryFileChange(t *testing.T) {
 
 	if count := mock.reloadCount(); count != 1 {
 		t.Errorf("expected 1 reload from subdirectory change; got %d", count)
+	}
+}
+
+func TestWatcherFailureInvalidates(t *testing.T) {
+	mock := &mockReloader{}
+	watcher, err := reload.NewReloadWatcher(filepath.Join(t.TempDir(), "missing"), mock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := watcher.Start(context.Background()); err == nil {
+		t.Fatal("expected error for inaccessible policy directory")
+	}
+	mock.mu.Lock()
+	defer mock.mu.Unlock()
+	if !mock.invalidated {
+		t.Fatal("watcher failure must invalidate enforcement")
 	}
 }

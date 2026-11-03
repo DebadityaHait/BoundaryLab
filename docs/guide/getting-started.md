@@ -124,7 +124,7 @@ Try an allowed operation:
 action=allow policy= layer=adapter latency=3167000ns
 ```
 
-> **Security property (fail-open):** If the daemon is unreachable (crashed, not started), the hook **allows all requests** and logs them to `~/.boundarylab/failopen.log` for later reconciliation. This prioritizes developer productivity over enforcement during daemon outages. Run the daemon under a process supervisor (systemd, launchd — see `deploy/`) for persistent enforcement.
+> **Security property:** The hook denies requests when the daemon is unreachable or a request cannot be evaluated. Restore the daemon to resume tool use. Denials are recorded in `~/.boundarylab/failclosed.log` when logging is available.
 
 ## Launch the Dashboard
 
@@ -157,10 +157,10 @@ Check that all policy files parse correctly:
 ## Troubleshooting
 
 **Hook seems to do nothing / all requests allowed:**
-The daemon isn't running (or isn't reachable at the expected socket path). The hook fails open silently. Start the daemon and check `~/.boundarylab/failopen.log` for missed requests.
+The daemon isn't running (or isn't reachable at the expected socket path). The hook denies requests. Start the daemon and check `~/.boundarylab/failclosed.log` for blocked requests.
 
 **Policies not reloading after file change:**
-Check daemon stderr for CEL parse errors. If a policy file has invalid YAML or bad CEL syntax, the daemon retains the previous valid snapshot and logs the error. Fix the syntax and save again.
+Check daemon stderr for CEL parse errors. If a policy file has invalid YAML or bad CEL syntax, the daemon invalidates the active snapshot, denies requests, and logs the error. Fix the syntax and save again.
 
 **Connection refused / timeout:**
 The daemon binds to `/tmp/boundarylab.sock` by default. If you changed the path via `-socket` or `$BOUNDARYLAB_SOCKET_PATH`, the hook must use the same path. Set `BOUNDARYLAB_SOCKET_PATH` in your shell environment.
@@ -173,7 +173,7 @@ Confirm the daemon is running with the dashboard WebSocket enabled (default `:90
 
 ## Disable or Uninstall
 
-**Temporary disable (instant):** Stop the daemon. The hook will fail open — all tool calls proceed normally.
+**Stop enforcement:** Stopping the daemon blocks requests while the hook is installed. To remove BoundaryLab, follow the uninstall instructions below.
 
 ```bash
 # Find and stop the daemon

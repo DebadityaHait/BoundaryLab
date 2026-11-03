@@ -84,16 +84,9 @@ metadata:
 		t.Fatalf("failed to write test file: %v", err)
 	}
 
-	template, binding, err := ParsePolicyFile(path)
-	if err != nil {
-		t.Fatalf("ParsePolicyFile failed: %v", err)
-	}
-
-	if template != nil {
-		t.Errorf("expected nil template for non-PolicyTemplate, got %+v", template)
-	}
-	if binding != nil {
-		t.Errorf("expected nil binding for non-PolicyTemplate, got %+v", binding)
+	_, _, err := ParsePolicyFile(path)
+	if err == nil {
+		t.Fatal("expected unsupported policy kind to fail")
 	}
 }
 
@@ -629,5 +622,80 @@ func TestParsePolicyFile_DevPortCleanup_LoadsWithParams(t *testing.T) {
 	ports, ok := devPorts.([]any)
 	if !ok || len(ports) == 0 {
 		t.Errorf("devPorts should be a non-empty []any, got %T len=%d", devPorts, len(ports))
+	}
+}
+
+func TestParsePolicyDirRejectsInvalidPolicy(t *testing.T) {
+	dir := t.TempDir()
+	valid := "apiVersion: boundarylab.io/v1\nkind: PolicyTemplate\nmetadata:\n  name: safe\nspec:\n  validations:\n    - expression: 'true'\n"
+	if err := os.WriteFile(filepath.Join(dir, "valid.yaml"), []byte(valid), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "bad.yaml"), []byte("kind: [invalid"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	templates, _, err := ParsePolicyDir(dir)
+	if err == nil || templates != nil {
+		t.Fatalf("malformed policy must reject entire directory, got %d templates, err %v", len(templates), err)
+	}
+}
+
+func TestParsePolicyFileRejectsUntranslatedAuditStub(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "stub.yaml")
+	data := `apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+  name: incomplete
+spec:
+  validations:
+    - expression: "false"
+      message: "manual review required"
+      action: AUDIT
+`
+	if err := os.WriteFile(path, []byte(data), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := ParsePolicyFile(path); err == nil {
+		t.Fatal("untranslated audit stub must not activate")
+	}
+}
+
+func TestParseMixedDenyAndApprovalEnforcesBoth(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "mixed.yaml")
+	data := `apiVersion: boundarylab.io/v1
+kind: PolicyTemplate
+metadata:
+  name: mixed
+spec:
+  validations:
+    - expression: 'tool == "Read"'
+      action: DENY
+    - expression: 'tool == "Bash"'
+      action: REQUIRE_APPROVAL
+`
+	if err := os.WriteFile(path, []byte(data), 0600); err != nil {
+		t.Fatal(err)
+	}
+	template, binding, err := ParsePolicyFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if binding.RequireApproval || !strings.Contains(template.Expression, `tool == "Read"`) || !strings.Contains(template.Expression, `tool == "Bash"`) {
+		t.Fatalf("mixed policy must conservatively enforce both: %+v %+v", template, binding)
+	}
+}
+
+func TestParsePolicyDirRejectsDuplicatePolicyIDs(t *testing.T) {
+	dir := t.TempDir()
+	data := []byte("apiVersion: boundarylab.io/v1\nkind: PolicyTemplate\nmetadata:\n  name: duplicate\nspec:\n  validations:\n    - expression: 'true'\n      action: DENY\n")
+	for _, name := range []string{"first.yaml", "second.yaml"} {
+		if err := os.WriteFile(filepath.Join(dir, name), data, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, _, err := ParsePolicyDir(dir); err == nil {
+		t.Fatal("duplicate policy ID must be rejected")
 	}
 }

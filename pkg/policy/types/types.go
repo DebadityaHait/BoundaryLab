@@ -9,7 +9,7 @@ type PolicyTemplate struct {
 	Params        map[string]any // resolved param values (defaults applied at parse time)
 	SourceFile    string         // policy source file path for policySourceLocation in CheckResponse
 	SourceLine    int            // policy source line number
-	DefaultAction string         // "DENY" opts into fail-secure on CEL compile/runtime error
+	DefaultAction string         // policy default action; compilation and evaluation errors always deny
 }
 
 type PolicyBinding struct {
@@ -19,7 +19,7 @@ type PolicyBinding struct {
 	Layer           string // "cel", "ifc", "adapter"
 	RequireApproval bool   // true if the policy's primary action is REQUIRE_APPROVAL
 	Message         string // human-readable message from YAML validations[].message
-	DefaultAction   string // "DENY" opts into fail-secure on CEL runtime error
+	DefaultAction   string // policy default action; evaluation errors always deny
 }
 
 type PolicyScope struct {

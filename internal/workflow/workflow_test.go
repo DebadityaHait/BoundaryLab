@@ -41,6 +41,10 @@ func workflowSocketPath() string {
 
 // ─── shared helpers ───────────────────────────────────────────────────────────
 
+func workflowAllowBundle(version uint64) *boundarylab.CompiledBundle {
+	return &boundarylab.CompiledBundle{Version: version, Templates: []policy_types.PolicyTemplate{{ID: "workflow-allow", Expression: "true"}}, Bindings: []policy_types.PolicyBinding{{TemplateID: "workflow-allow"}}}
+}
+
 // builtinPolicyDir returns the absolute path to policies/builtin, skipping the
 // test if it cannot be found.
 func builtinPolicyDir(t *testing.T) string {
@@ -126,7 +130,7 @@ func startWorkflowDaemon(
 		sessions = &ifc.SessionLabels{}
 	}
 
-	eng = policy.NewPolicyEngine(sessions, celEnv)
+	eng = policy.NewPolicyEngine(sessions, celEnv, policy.WithSecretScanner(secret.NewScanner()))
 
 	if policyDir != "" {
 		templates, bindings, err := bundle.ParsePolicyDir(policyDir)
@@ -237,7 +241,7 @@ func TestWorkflow_HookDeny_ExitTwo(t *testing.T) {
 }
 
 // TestWorkflow_PolicyReload_WhileServing verifies hot-reload semantics: the
-// engine transitions from deny (uninitialised) → allow (empty bundle) → deny
+// engine transitions from deny (uninitialised) → allow (valid policy) → deny
 // (deny-all bundle) while the daemon is running, without panics or lost requests.
 func TestWorkflow_PolicyReload_WhileServing(t *testing.T) {
 	t.Parallel()
@@ -255,10 +259,10 @@ func TestWorkflow_PolicyReload_WhileServing(t *testing.T) {
 		t.Errorf("pre-reload: expected Deny (uninitialized engine), got %v", resp1.Decision.Action)
 	}
 
-	// Phase 2: reload empty bundle → allow-all (no DENY policies present).
-	emptyBundle := &boundarylab.CompiledBundle{Version: 1}
+	// Phase 2: reload a valid allow policy.
+	emptyBundle := workflowAllowBundle(1)
 	if err := eng.Reload(context.Background(), emptyBundle); err != nil {
-		t.Fatalf("Reload (empty bundle): %v", err)
+		t.Fatalf("Reload (allow policy): %v", err)
 	}
 
 	resp2 := sendWorkflowRequest(t, socketPath, boundarylab.CheckRequest{
@@ -267,7 +271,7 @@ func TestWorkflow_PolicyReload_WhileServing(t *testing.T) {
 		SessionID: "wf-reload-test-002",
 	})
 	if resp2.Decision.Action != boundarylab.ActionAllow {
-		t.Errorf("post-reload (empty bundle): expected Allow, got %v (reason: %q)",
+		t.Errorf("post-reload (allow policy): expected Allow, got %v (reason: %q)",
 			resp2.Decision.Action, resp2.Decision.Reason)
 	}
 
@@ -355,7 +359,7 @@ func TestWorkflow_AuditRecord_Persistence(t *testing.T) {
 	}
 	sessions := &ifc.SessionLabels{}
 	eng := policy.NewPolicyEngine(sessions, celEnv)
-	if err := eng.Reload(context.Background(), &boundarylab.CompiledBundle{Version: 1}); err != nil {
+	if err := eng.Reload(context.Background(), workflowAllowBundle(1)); err != nil {
 		t.Fatalf("Reload: %v", err)
 	}
 
@@ -625,7 +629,7 @@ func TestWorkflow_SecretScan_PipelineDenies(t *testing.T) {
 	s := secret.NewScanner()
 	eng := policy.NewPolicyEngine(sessions, celEnv, policy.WithSecretScanner(s))
 
-	if err := eng.Reload(context.Background(), &boundarylab.CompiledBundle{Version: 1}); err != nil {
+	if err := eng.Reload(context.Background(), workflowAllowBundle(1)); err != nil {
 		t.Fatalf("Reload: %v", err)
 	}
 
@@ -760,7 +764,7 @@ func TestWorkflow_PolicyEngine_ReloadDoesNotDropRequests(t *testing.T) {
 	sessions := &ifc.SessionLabels{}
 	eng := policy.NewPolicyEngine(sessions, celEnv)
 
-	if err := eng.Reload(context.Background(), &boundarylab.CompiledBundle{Version: 1}); err != nil {
+	if err := eng.Reload(context.Background(), workflowAllowBundle(1)); err != nil {
 		t.Fatalf("initial Reload: %v", err)
 	}
 
@@ -793,7 +797,7 @@ func TestWorkflow_PolicyEngine_ReloadDoesNotDropRequests(t *testing.T) {
 		if ctxErr := ctx.Err(); ctxErr != nil {
 			break
 		}
-		if err := eng.Reload(ctx, &boundarylab.CompiledBundle{Version: uint64(v + 2)}); err != nil {
+		if err := eng.Reload(ctx, workflowAllowBundle(uint64(v+2))); err != nil {
 			t.Errorf("concurrent Reload v%d: %v", v+2, err)
 		}
 		time.Sleep(2 * time.Millisecond)

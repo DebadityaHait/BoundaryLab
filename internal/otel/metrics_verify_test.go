@@ -36,7 +36,7 @@ func TestMetrics_AllREQ058Registered(t *testing.T) {
 	if counter := otel.InstrumentStreamDropped(); counter != nil {
 		counter.Add(context.Background(), 1)
 	}
-	if counter := otel.InstrumentFailOpen(); counter != nil {
+	if counter := otel.InstrumentFailClosed(); counter != nil {
 		counter.Add(context.Background(), 1)
 	}
 	if gauge := otel.InstrumentDaemonConns(); gauge != nil {
@@ -69,7 +69,7 @@ func TestMetrics_AllREQ058Registered(t *testing.T) {
 		"boundarylab_daemon_active_connections",
 		"boundarylab_stream_clients_connected",
 		"boundarylab_stream_tap_dropped_total",
-		"boundarylab_failopen_total",
+		"boundarylab_failclosed_total",
 	}
 
 	for _, name := range required {

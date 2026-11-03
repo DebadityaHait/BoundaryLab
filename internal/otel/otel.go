@@ -252,6 +252,6 @@ func resetToNoop() {
 	daemonConns, _ = noopMeter.Int64UpDownCounter("boundarylab_daemon_active_connections")
 	streamClients, _ = noopMeter.Int64UpDownCounter("boundarylab_stream_clients_connected")
 	streamDropped, _ = noopMeter.Int64Counter("boundarylab_stream_tap_dropped_total")
-	failOpenTotal, _ = noopMeter.Int64Counter("boundarylab_failopen_total")
+	failClosedTotal, _ = noopMeter.Int64Counter("boundarylab_failclosed_total")
 	gitleaksMemory, _ = noopMeter.Int64ObservableGauge("boundarylab_gitleaks_memory_bytes")
 }

@@ -62,12 +62,14 @@ func (p *MCPProxy) HandleRequest(ctx context.Context, req JSONRPCRequest) JSONRP
 		return p.handleToolCall(ctx, req)
 	case "tools/list":
 		return p.handleToolsList(ctx, req)
-	default:
+	case "initialize", "ping", "notifications/initialized":
 		result, err := p.upstream.Call(ctx, req.Method, req.Params)
 		if err != nil {
 			return errorResponse(req.ID, -32603, err.Error())
 		}
 		return JSONRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: result}
+	default:
+		return errorResponse(req.ID, -32601, "method is not governed by BoundaryLab")
 	}
 }
 
@@ -98,26 +100,21 @@ func (p *MCPProxy) handleToolCall(ctx context.Context, req JSONRPCRequest) JSONR
 
 	switch resp.Decision.Action {
 	case boundarylab.ActionAllow, boundarylab.ActionAudit:
-		// Forward to upstream.
+		if p.scanner == nil {
+			return errorResponse(req.ID, -32603, "response scanner is unavailable")
+		}
 		result, callErr := p.upstream.Call(ctx, req.Method, req.Params)
 		if callErr != nil {
 			return errorResponse(req.ID, -32603, callErr.Error())
 		}
-		// Async response scan — do not block the return path.
-		if p.scanner != nil {
-			p.wg.Add(1)
-			content := string(result)
-			tool := toolName
-			session := p.sessionID
-			scanner := p.scanner
-			go func() {
-				defer p.wg.Done()
-				findings, _ := scanner.ScanBoundary(ctx, content, policy.BoundaryToolResponse)
-				if len(findings) > 0 {
-					log.Printf("secret.detected: tool=%s session=%s type=%s", tool, session, findings[0].Rule)
-				}
-			}()
+		if len(result) > 1<<20 {
+			return errorResponse(req.ID, -32603, "tool response exceeds secret scanning limit")
 		}
+		findings, scanLabel := p.scanner.ScanBoundary(ctx, string(result), policy.BoundaryToolResponse)
+		if len(findings) > 0 || scanLabel != (boundarylab.SecurityLabel{}) {
+			return errorResponse(req.ID, -32603, "tool response blocked by secret scan")
+		}
+
 		return JSONRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: result}
 
 	case boundarylab.ActionRequireApproval:

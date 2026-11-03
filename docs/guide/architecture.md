@@ -138,9 +138,9 @@ There is exactly ONE `atomic.Pointer.Store()` call in the codebase (in `applySna
 reloadMu.Lock()
   parse → compile → validate
   if err != nil {
-    log.Error("reload failed, retaining previous snapshot")
+    log.Error("reload failed, requests denied")
     reloadMu.Unlock()
-    return  // INV-007: failed reload never replaces snapshot
+    return  // INV-007: failed reload invalidates the snapshot
   }
   applySnapshot(newSnap)
 reloadMu.Unlock()
@@ -263,10 +263,10 @@ flowchart TD
 | INV-001 | Zero-value `Action` is `ActionDeny` (fail-secure) | Type definition: `ActionDeny = 0` |
 | INV-005 | `atomic.Pointer.Store()` appears exactly once | CI grep check |
 | INV-006 | `reloadMu` never held during `Evaluate()` | Code structure: separate paths |
-| INV-007 | Failed reload never replaces the snapshot | Error check before `Store()` |
+| INV-007 | Failed reload invalidates the snapshot | Error check before `Store()` |
 | INV-008 | SQLite audit writes happen on single goroutine | Channel architecture |
 | INV-009 | Chain hash computed per-record before batch write | Audit writer implementation |
-| INV-010 | Hook fail-open: unreachable daemon = ALLOW (logged) | Hook fallback path |
+| INV-010 | Hook fail-closed: unreachable daemon = DENY (logged when possible) | Hook fallback path |
 | INV-011 | No allocation in `Evaluate()` steady-state | Benchmark regression tests |
 | INV-012 | Policy reload is atomic (all-or-nothing) | Snapshot swap pattern |
 
