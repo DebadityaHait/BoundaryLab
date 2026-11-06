@@ -174,18 +174,18 @@ func (d *Daemon) handleConnection(conn net.Conn) {
 			eventType = "policy.denied"
 		}
 		d.streamSrv.Emit(ctx, boundarylab.StreamEvent{
-			Type:           eventType,
-			BoundaryLabSequence:  0, // assigned in fan-out goroutine
-			SessionID:      req.SessionID,
-			Tool:           req.Tool,
-			Action:         resp.Decision.Action,
-			Reason:         resp.Decision.Reason,
-			Label:          resp.Decision.Labels,
-			Timestamp:      time.Now().UnixNano(),
-			PolicyID:       resp.Decision.PolicyID,
-			EnforcingLayer: string(resp.EnforcingLayer),
-			LabelState:     "fresh",
-			LatencyNs:      resp.LatencyNs,
+			Type:                eventType,
+			BoundaryLabSequence: 0, // assigned in fan-out goroutine
+			SessionID:           req.SessionID,
+			Tool:                req.Tool,
+			Action:              resp.Decision.Action,
+			Reason:              resp.Decision.Reason,
+			Label:               resp.Decision.Labels,
+			Timestamp:           time.Now().UnixNano(),
+			PolicyID:            resp.Decision.PolicyID,
+			EnforcingLayer:      string(resp.EnforcingLayer),
+			LabelState:          "fresh",
+			LatencyNs:           resp.LatencyNs,
 		})
 	}
 }

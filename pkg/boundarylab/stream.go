@@ -6,18 +6,18 @@ import "context"
 // StreamEvent is a governance event published by internal/stream/.
 // The event type field uses one of the 12 canonical event type constants.
 type StreamEvent struct {
-	Type           string        // one of the 12 canonical event types (see constants below)
-	BoundaryLabSequence  uint64        // monotonic sequence number assigned in the fan-out goroutine at Emit() time
-	SessionID      string        // session that produced this event; empty for system events
-	Tool           string        // tool involved in the event; empty for non-decision events
-	Action         Action        // authorization action for decision events; zero (Deny) for non-decision events
-	Reason         string        // human-readable explanation accompanying the event
-	Label          SecurityLabel // label state at event time; zero for events that do not carry label context
-	Timestamp      int64         // Unix nanoseconds at event creation
-	PolicyID       string        // policy that triggered the event; empty if not policy-driven
-	EnforcingLayer string        // evaluation layer that raised the event (e.g. "cel", "ifc")
-	LabelState     string        // serialized label transition description for label.* events
-	LatencyNs      int64         // evaluation duration in nanoseconds for decision events; 0 otherwise
+	Type                string        // one of the 12 canonical event types (see constants below)
+	BoundaryLabSequence uint64        // monotonic sequence number assigned in the fan-out goroutine at Emit() time
+	SessionID           string        // session that produced this event; empty for system events
+	Tool                string        // tool involved in the event; empty for non-decision events
+	Action              Action        // authorization action for decision events; zero (Deny) for non-decision events
+	Reason              string        // human-readable explanation accompanying the event
+	Label               SecurityLabel // label state at event time; zero for events that do not carry label context
+	Timestamp           int64         // Unix nanoseconds at event creation
+	PolicyID            string        // policy that triggered the event; empty if not policy-driven
+	EnforcingLayer      string        // evaluation layer that raised the event (e.g. "cel", "ifc")
+	LabelState          string        // serialized label transition description for label.* events
+	LatencyNs           int64         // evaluation duration in nanoseconds for decision events; 0 otherwise
 }
 
 // Canonical stream event type constants (15 total — fixed wire format).

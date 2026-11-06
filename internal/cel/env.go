@@ -18,11 +18,11 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"boundarylab.local/boundarylab/internal/ifc"
+	boundarylabtypes "boundarylab.local/boundarylab/pkg/boundarylab"
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/common/types"
 	"github.com/google/cel-go/common/types/ref"
-	"boundarylab.local/boundarylab/internal/ifc"
-	boundarylabtypes "boundarylab.local/boundarylab/pkg/boundarylab"
 	"google.golang.org/protobuf/proto"
 )
 

@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gorilla/websocket"
 	"boundarylab.local/boundarylab/pkg/boundarylab"
+	"github.com/gorilla/websocket"
 )
 
 // nullReader implements SnapshotReader returning nil.

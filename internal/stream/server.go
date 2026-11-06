@@ -21,10 +21,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
 	"boundarylab.local/boundarylab/internal/otel"
 	"boundarylab.local/boundarylab/pkg/boundarylab"
+	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 )
 
 type ipLimiter struct {
@@ -158,17 +158,17 @@ type eventFilter struct {
 
 // cloudEvent is the CloudEvents v1.0 envelope emitted on the wire.
 type cloudEvent struct {
-	SpecVersion     string          `json:"specversion"`
-	ID              string          `json:"id"`
-	Type            string          `json:"type"`
-	Source          string          `json:"source"`
-	Subject         string          `json:"subject,omitempty"`
-	Time            string          `json:"time"`
-	DataContentType string          `json:"datacontenttype"`
-	BoundaryLabSequence   uint64          `json:"boundarylabsequence"`
-	MerklePrev      string          `json:"boundarylabmerkleprev,omitempty"`
-	MerkleSelf      string          `json:"boundarylabmerkleself,omitempty"`
-	Data            json.RawMessage `json:"data"`
+	SpecVersion         string          `json:"specversion"`
+	ID                  string          `json:"id"`
+	Type                string          `json:"type"`
+	Source              string          `json:"source"`
+	Subject             string          `json:"subject,omitempty"`
+	Time                string          `json:"time"`
+	DataContentType     string          `json:"datacontenttype"`
+	BoundaryLabSequence uint64          `json:"boundarylabsequence"`
+	MerklePrev          string          `json:"boundarylabmerkleprev,omitempty"`
+	MerkleSelf          string          `json:"boundarylabmerkleself,omitempty"`
+	Data                json.RawMessage `json:"data"`
 }
 
 // stateSnapshot is the initial payload sent on client connect (per STREAMING_PROTOCOL.md §3).
@@ -217,9 +217,9 @@ type StreamServer struct {
 	addr         string
 	tap          boundarylab.StreamTap // upstream tap (may be nil in tests — server IS the tap)
 	reader       boundarylab.SnapshotReader
-	evaluator    Evaluator          // injected via WithEvaluator; nil disables /simulate
+	evaluator    Evaluator                // injected via WithEvaluator; nil disables /simulate
 	policyLister boundarylab.PolicyLister // injected via WithPolicyLister; nil disables GET /policies
-	clients      sync.Map           // string → *client
+	clients      sync.Map                 // string → *client
 	seq          sequenceCounter
 	events       chan boundarylab.StreamEvent // internal fan-out queue
 	httpSrv      *http.Server
@@ -412,14 +412,14 @@ func (s *StreamServer) heartbeat(ctx context.Context) {
 				continue
 			}
 			evt := cloudEvent{
-				SpecVersion:     "1.0",
-				ID:              fmt.Sprintf("hb-%d", seq),
-				Type:            "stream.heartbeat",
-				Source:          "boundarylab-daemon/instance-001",
-				Time:            now.UTC().Format(time.RFC3339Nano),
-				DataContentType: "application/json",
-				BoundaryLabSequence:   seq,
-				Data:            raw,
+				SpecVersion:         "1.0",
+				ID:                  fmt.Sprintf("hb-%d", seq),
+				Type:                "stream.heartbeat",
+				Source:              "boundarylab-daemon/instance-001",
+				Time:                now.UTC().Format(time.RFC3339Nano),
+				DataContentType:     "application/json",
+				BoundaryLabSequence: seq,
+				Data:                raw,
 			}
 			payload, err := json.Marshal(evt)
 			if err != nil {
@@ -529,18 +529,18 @@ func (s *StreamServer) handleSimulate(w http.ResponseWriter, r *http.Request) {
 		eventType = "policy.denied"
 	}
 	s.Emit(r.Context(), boundarylab.StreamEvent{
-		Type:           eventType,
-		BoundaryLabSequence:  0, // assigned in fan-out goroutine
-		SessionID:      req.SessionID,
-		Tool:           req.Tool,
-		Action:         resp.Decision.Action,
-		Reason:         resp.Decision.Reason,
-		Label:          resp.Decision.Labels,
-		Timestamp:      req.Timestamp,
-		PolicyID:       resp.Decision.PolicyID,
-		EnforcingLayer: string(resp.EnforcingLayer),
-		LabelState:     "fresh",
-		LatencyNs:      resp.LatencyNs,
+		Type:                eventType,
+		BoundaryLabSequence: 0, // assigned in fan-out goroutine
+		SessionID:           req.SessionID,
+		Tool:                req.Tool,
+		Action:              resp.Decision.Action,
+		Reason:              resp.Decision.Reason,
+		Label:               resp.Decision.Labels,
+		Timestamp:           req.Timestamp,
+		PolicyID:            resp.Decision.PolicyID,
+		EnforcingLayer:      string(resp.EnforcingLayer),
+		LabelState:          "fresh",
+		LatencyNs:           resp.LatencyNs,
 	})
 
 	w.Header().Set("Content-Type", "application/json")
@@ -836,14 +836,14 @@ func (s *StreamServer) sendSystemError(c *client, reason, msg string) {
 		raw = []byte(`{}`)
 	}
 	evt := cloudEvent{
-		SpecVersion:     "1.0",
-		ID:              fmt.Sprintf("err-%d", seq),
-		Type:            "system.error",
-		Source:          "boundarylab-daemon/instance-001",
-		Time:            time.Now().UTC().Format(time.RFC3339Nano),
-		DataContentType: "application/json",
-		BoundaryLabSequence:   seq,
-		Data:            raw,
+		SpecVersion:         "1.0",
+		ID:                  fmt.Sprintf("err-%d", seq),
+		Type:                "system.error",
+		Source:              "boundarylab-daemon/instance-001",
+		Time:                time.Now().UTC().Format(time.RFC3339Nano),
+		DataContentType:     "application/json",
+		BoundaryLabSequence: seq,
+		Data:                raw,
 	}
 	payload, err := json.Marshal(evt)
 	if err != nil {
@@ -876,14 +876,14 @@ func (s *StreamServer) EmitBundleActivated(_ context.Context, version uint64, ha
 		return
 	}
 	evt := cloudEvent{
-		SpecVersion:     "1.0",
-		ID:              fmt.Sprintf("bundle-%d", seq),
-		Type:            "bundle.activated",
-		Source:          "boundarylab-daemon/instance-001",
-		Time:            time.Now().UTC().Format(time.RFC3339Nano),
-		DataContentType: "application/json",
-		BoundaryLabSequence:   seq,
-		Data:            raw,
+		SpecVersion:         "1.0",
+		ID:                  fmt.Sprintf("bundle-%d", seq),
+		Type:                "bundle.activated",
+		Source:              "boundarylab-daemon/instance-001",
+		Time:                time.Now().UTC().Format(time.RFC3339Nano),
+		DataContentType:     "application/json",
+		BoundaryLabSequence: seq,
+		Data:                raw,
 	}
 	payload, err := json.Marshal(evt)
 	if err != nil {
@@ -913,16 +913,16 @@ func (s *StreamServer) EmitAuditCheckpoint(_ context.Context, seq int64, hash, p
 		return
 	}
 	evt := cloudEvent{
-		SpecVersion:     "1.0",
-		ID:              fmt.Sprintf("ckpt-%d", wseq),
-		Type:            "audit.checkpoint",
-		Source:          "boundarylab-daemon/instance-001",
-		Time:            time.Now().UTC().Format(time.RFC3339Nano),
-		DataContentType: "application/json",
-		BoundaryLabSequence:   wseq,
-		MerkleSelf:      hash,
-		MerklePrev:      prevHash,
-		Data:            raw,
+		SpecVersion:         "1.0",
+		ID:                  fmt.Sprintf("ckpt-%d", wseq),
+		Type:                "audit.checkpoint",
+		Source:              "boundarylab-daemon/instance-001",
+		Time:                time.Now().UTC().Format(time.RFC3339Nano),
+		DataContentType:     "application/json",
+		BoundaryLabSequence: wseq,
+		MerkleSelf:          hash,
+		MerklePrev:          prevHash,
+		Data:                raw,
 	}
 	payload, err := json.Marshal(evt)
 	if err != nil {
@@ -975,15 +975,15 @@ func buildCloudEvent(event boundarylab.StreamEvent, seq uint64) ([]byte, error) 
 	}
 
 	evt := cloudEvent{
-		SpecVersion:     "1.0",
-		ID:              id,
-		Type:            wireType,
-		Source:          "boundarylab-daemon/instance-001",
-		Subject:         event.Tool,
-		Time:            time.Unix(0, event.Timestamp).UTC().Format(time.RFC3339Nano),
-		DataContentType: "application/json",
-		BoundaryLabSequence:   seq,
-		Data:            raw,
+		SpecVersion:         "1.0",
+		ID:                  id,
+		Type:                wireType,
+		Source:              "boundarylab-daemon/instance-001",
+		Subject:             event.Tool,
+		Time:                time.Unix(0, event.Timestamp).UTC().Format(time.RFC3339Nano),
+		DataContentType:     "application/json",
+		BoundaryLabSequence: seq,
+		Data:                raw,
 	}
 
 	// Non-Merkle events: stream.heartbeat and system.error omit merkle fields.

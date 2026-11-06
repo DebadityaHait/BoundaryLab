@@ -5,12 +5,12 @@ import (
 	"context"
 	"sync"
 
-	celgo "github.com/google/cel-go/cel"
-	"github.com/google/cel-go/common/types"
-	"github.com/google/cel-go/common/types/ref"
 	"boundarylab.local/boundarylab/internal/classify"
 	"boundarylab.local/boundarylab/internal/label"
 	boundarylab "boundarylab.local/boundarylab/pkg/boundarylab"
+	celgo "github.com/google/cel-go/cel"
+	"github.com/google/cel-go/common/types"
+	"github.com/google/cel-go/common/types/ref"
 )
 
 // activationPool pools plain map[string]any values to avoid heap allocation on the hot path.

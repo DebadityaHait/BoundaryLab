@@ -16,8 +16,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gorilla/websocket"
 	"boundarylab.local/boundarylab/internal/bundle"
+	"github.com/gorilla/websocket"
 )
 
 // --- helpers ---
@@ -510,23 +510,23 @@ func TestCLI_AuditTail_Follow_WebSocket(t *testing.T) {
 
 	// policyEvent and heartbeat payloads — only policyEvent should pass the filter.
 	policyEvent := map[string]interface{}{
-		"specversion":     "1.0",
-		"id":              "evt-1",
-		"type":            "policy.evaluated",
-		"source":          "boundarylab-daemon/test",
-		"time":            time.Now().UTC().Format(time.RFC3339Nano),
-		"datacontenttype": "application/json",
-		"boundarylabsequence":   1,
-		"data":            map[string]interface{}{"tool": "bash", "session_id": "s1"},
+		"specversion":         "1.0",
+		"id":                  "evt-1",
+		"type":                "policy.evaluated",
+		"source":              "boundarylab-daemon/test",
+		"time":                time.Now().UTC().Format(time.RFC3339Nano),
+		"datacontenttype":     "application/json",
+		"boundarylabsequence": 1,
+		"data":                map[string]interface{}{"tool": "bash", "session_id": "s1"},
 	}
 	heartbeat := map[string]interface{}{
-		"specversion":   "1.0",
-		"id":            "hb-1",
-		"type":          "stream.heartbeat",
-		"source":        "boundarylab-daemon/test",
-		"time":          time.Now().UTC().Format(time.RFC3339Nano),
+		"specversion":         "1.0",
+		"id":                  "hb-1",
+		"type":                "stream.heartbeat",
+		"source":              "boundarylab-daemon/test",
+		"time":                time.Now().UTC().Format(time.RFC3339Nano),
 		"boundarylabsequence": 2,
-		"data":          map[string]interface{}{"serverTime": 0},
+		"data":                map[string]interface{}{"serverTime": 0},
 	}
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

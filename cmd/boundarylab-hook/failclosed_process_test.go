@@ -66,7 +66,7 @@ func TestHookRejectsInvalidDaemonResponse(t *testing.T) {
 	if err != nil {
 		t.Skipf("unix sockets unavailable: %v", err)
 	}
-	defer listener.Close()
+	defer func() { _ = listener.Close() }()
 	serverDone := make(chan error, 1)
 	go func() {
 		conn, err := listener.Accept()
@@ -74,7 +74,7 @@ func TestHookRejectsInvalidDaemonResponse(t *testing.T) {
 			serverDone <- err
 			return
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 		var header [4]byte
 		if _, err = io.ReadFull(conn, header[:]); err != nil {
 			serverDone <- err

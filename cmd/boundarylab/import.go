@@ -1114,13 +1114,6 @@ func newMCPVisorManifest(id, desc, cel, action, severity, source string) boundar
 	}
 }
 
-func appendSkipComment(comments []string, msg string) []string {
-	if len(comments) > 0 {
-		comments[len(comments)-1] = msg
-	}
-	return comments
-}
-
 // ---- Checkov converter ----
 
 // resourceToFilePattern maps Checkov resource_types to file path regex patterns.

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"boundarylab.local/boundarylab/internal/ifc"
+	"github.com/google/uuid"
 )
 
 const maxApprovalTTLSeconds = 7200
